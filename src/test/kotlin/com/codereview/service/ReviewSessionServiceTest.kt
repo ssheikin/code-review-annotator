@@ -298,4 +298,15 @@ class ReviewSessionServiceTest {
         service.setResolved("c1", true)
         assertEquals(afterAdd + 1, service.changeCount.value)
     }
+
+    @Test
+    fun `only submit sets lastSubmitted`() {
+        service.addComment(ReviewComment(id = "c1", text = "Discarded"))
+        service.archiveAndClear()
+        assertNull(service.lastSubmitted)
+
+        service.addComment(ReviewComment(id = "c2", text = "Sent"))
+        service.submitAndClear()
+        assertEquals("c2", service.lastSubmitted?.session?.comments?.single()?.id)
+    }
 }

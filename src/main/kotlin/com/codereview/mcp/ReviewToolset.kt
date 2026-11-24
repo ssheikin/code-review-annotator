@@ -73,17 +73,16 @@ class ReviewToolset : McpToolset {
     ): String {
         val project = currentCoroutineContext().project
         val service = ReviewSessionService.getInstance(project)
-        val (startCount, startSession) = withContext(Dispatchers.EDT) { service.changeCount.value to service.currentSession.id }
+        val (startCount, startSubmitted) = withContext(Dispatchers.EDT) { service.changeCount.value to service.lastSubmitted }
         val changed = withTimeoutOrNull(timeoutSeconds.coerceIn(1, 3600).seconds) {
             service.changeCount.first { it != startCount }
         }
         if (changed == null) return "No review changes in $timeoutSeconds seconds."
         return withContext(Dispatchers.EDT) {
-            val submitted = service.currentSession.id != startSession && service.currentSession.comments.isEmpty()
-            val archived = service.reviewHistory.firstOrNull()?.session
-            if (submitted && archived != null) {
+            val submitted = service.lastSubmitted?.takeIf { it !== startSubmitted }
+            if (submitted != null) {
                 "The user submitted the review.\n\n" +
-                    MarkdownExporter.export(archived, withIds = true, snippetOf = ProjectSnippets.reader(project))
+                    MarkdownExporter.export(submitted.session, withIds = true, snippetOf = ProjectSnippets.reader(project))
             } else {
                 describe(project)
             }

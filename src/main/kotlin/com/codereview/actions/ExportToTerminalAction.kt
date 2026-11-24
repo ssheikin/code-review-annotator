@@ -94,7 +94,7 @@ class ExportToTerminalAction : AnAction(
 
     private fun finishSubmit(project: Project, commentCount: Int) {
         InlineCommentManager.clearAllInlineComments(project)
-        ReviewSessionService.getInstance(project).archiveAndClear()
+        ReviewSessionService.getInstance(project).submitAndClear()
         ReviewToolWindowFactory.refreshPanel(project)
 
         NotificationGroupManager.getInstance()

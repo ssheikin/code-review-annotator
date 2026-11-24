@@ -167,6 +167,16 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         clearSession()
     }
 
+    // Kept apart from clearing so a waiting agent can tell a submitted review from a discarded one.
+    var lastSubmitted: ArchivedReview? = null
+        private set
+
+    fun submitAndClear() {
+        archiveCurrent()
+        lastSubmitted = history.firstOrNull()
+        clearSession()
+    }
+
     // Undo is in memory only, so a review replaced without archiving
     // would be lost on restart.
     private fun archiveCurrent() {
