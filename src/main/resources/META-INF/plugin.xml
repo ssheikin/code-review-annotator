@@ -19,6 +19,7 @@
     <depends>com.intellij.modules.vcs</depends>
     <depends>com.intellij.platform.vcs</depends>
     <depends>org.jetbrains.plugins.terminal</depends>
+    <depends optional="true" config-file="code-review-mcp.xml">com.intellij.mcpServer</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.codereview.service.ReviewSessionService"/>

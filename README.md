@@ -105,6 +105,21 @@ assumes a POSIX shell such as bash, zsh or fish:
 claude "$(cat {file})"
 ```
 
+### Let an agent work through the review (MCP)
+
+The plugin adds review tools to the IDE's built-in MCP server. Enable the server in
+**Settings → Tools → MCP Server** and connect your agent to it. The agent can then:
+
+| Tool                     | What it does                                                    |
+|--------------------------|-----------------------------------------------------------------|
+| `review_list_comments`   | List open comments with ids, quoted code and replies            |
+| `review_resolve`         | Resolve a comment, with an optional reply on what changed       |
+| `review_reply`           | Reply without resolving, for example to ask a question back     |
+| `review_wait_for_update` | Block until you change or submit the review, then list comments |
+
+Resolutions and replies show up in the editor as the agent makes them. For a live loop, ask the
+agent to call `review_wait_for_update` after it addresses the open comments.
+
 ### 4. Clear session
 
 Click **Clear Session** in the tool window toolbar. This removes all comments and gutter icons.

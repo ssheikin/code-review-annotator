@@ -39,7 +39,7 @@ class ExportToTerminalAction : AnAction(
 
         val commentCount = session.comments.count { it.scope != com.codereview.model.CommentScope.REVIEW && !it.resolved }
         CommentAnchors.reanchorAll(project)
-        val markdown = MarkdownExporter.export(session, ProjectSnippets.reader(project))
+        val markdown = MarkdownExporter.export(session, snippetOf = ProjectSnippets.reader(project))
 
         val command = CodeReviewSettings.getInstance().state.submitCommand.trim()
         if (command.isNotEmpty()) {

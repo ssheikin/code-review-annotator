@@ -287,4 +287,15 @@ class ReviewSessionServiceTest {
         assertTrue(restored.resolved)
         assertEquals(listOf("agent" to "Done"), restored.replies.map { it.author to it.text })
     }
+
+    @Test
+    fun `changeCount counts recorded changes only`() {
+        service.addComment(ReviewComment(id = "c1", scope = CommentScope.LINE, text = "x", filePath = "a.go", lineStart = 3))
+        val afterAdd = service.changeCount.value
+        service.relocate("c1", 5, null, outdated = false)
+
+        assertEquals(afterAdd, service.changeCount.value)
+        service.setResolved("c1", true)
+        assertEquals(afterAdd + 1, service.changeCount.value)
+    }
 }

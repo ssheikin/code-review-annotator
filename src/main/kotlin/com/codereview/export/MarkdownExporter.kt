@@ -8,7 +8,11 @@ object MarkdownExporter {
 
     private const val MAX_SNIPPET_LINES = 15
 
-    fun export(session: ReviewSession, snippetOf: (ReviewComment) -> List<String>? = { null }): String {
+    fun export(
+        session: ReviewSession,
+        withIds: Boolean = false,
+        snippetOf: (ReviewComment) -> List<String>? = { null }
+    ): String {
         val exportableComments = session.comments.filter { it.scope != CommentScope.REVIEW && !it.resolved }
         if (exportableComments.isEmpty() && session.summary.isEmpty()) return ""
 
@@ -41,7 +45,8 @@ object MarkdownExporter {
                     CommentScope.REVIEW -> "`Review Comment`"
                 }
                 val outdatedNote = if (comment.outdated) " (code changed since this comment)" else ""
-                sb.appendLine("${index + 1}. **[${comment.type.name}]** $location$outdatedNote - ${comment.text}")
+                val id = if (withIds) " [id: ${comment.id}]" else ""
+                sb.appendLine("${index + 1}. **[${comment.type.name}]** $location$outdatedNote - ${comment.text}$id")
                 snippetOf(comment)?.takeIf { it.isNotEmpty() }?.let { appendSnippet(sb, it) }
                 comment.replies.forEach { sb.appendLine("   - **${it.author}:** ${it.text.replace("\n", " ")}") }
             }

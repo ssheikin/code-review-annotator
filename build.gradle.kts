@@ -20,6 +20,7 @@ dependencies {
         bundledPlugin("Git4Idea")
         bundledPlugin("com.intellij.platform.vcs")
         bundledPlugin("org.jetbrains.plugins.terminal")
+        bundledPlugin("com.intellij.mcpServer")
         pluginVerifier()
     }
     testImplementation("junit:junit:4.13.2")

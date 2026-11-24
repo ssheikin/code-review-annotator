@@ -7,6 +7,8 @@ import com.intellij.util.messages.Topic
 import com.intellij.util.xmlb.annotations.Tag
 import com.intellij.util.xmlb.annotations.XCollection
 import java.util.UUID
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 interface ReviewCommentListener {
     fun commentsChanged()
@@ -70,7 +72,12 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
     private val redoStack = ArrayDeque<Change>()
     private val history = mutableListOf<ArchivedReview>()
 
+    private val _changeCount = MutableStateFlow(0L)
+
     val currentSession: ReviewSession get() = session
+
+    // Counts recorded changes only, so code moving under a comment does not wake an agent waiting for review input.
+    val changeCount: StateFlow<Long> get() = _changeCount
     val reviewHistory: List<ArchivedReview> get() = history
     val canUndo: Boolean get() = undoStack.isNotEmpty()
     val canRedo: Boolean get() = redoStack.isNotEmpty()
@@ -82,6 +89,7 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         change()
         val after = snapshot()
         if (before == after) return
+        _changeCount.value++
         undoStack.addLast(Change(before, after))
         if (undoStack.size > MAX_UNDO) undoStack.removeFirst()
         redoStack.clear()
