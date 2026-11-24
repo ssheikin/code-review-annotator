@@ -11,7 +11,9 @@ import com.intellij.openapi.editor.InlayProperties
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorEmbeddedComponentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.IdeFocusManager
@@ -34,6 +36,7 @@ object InlineCommentManager {
     }
 
     fun addInlineComment(@Suppress("UNUSED_PARAMETER") project: Project, editor: Editor, comment: ReviewComment) {
+        if (editor.isDisposed) return
         val lineStart = (comment.lineStart ?: return) - 1
         val document = editor.document
         if (lineStart < 0 || lineStart >= document.lineCount) {
@@ -56,7 +59,8 @@ object InlineCommentManager {
             return
         }
         log.warn("[CodeReview] addInlineComment OK: commentId=${comment.id}, line=${lineStart+1}, editor=${System.identityHashCode(editor)}, inlay=${System.identityHashCode(inlay)}")
-        inlays[comment.id] = inlay
+        // An inlay replaced without disposal would linger in the editor with stale text.
+        inlays.put(comment.id, inlay)?.let { try { it.dispose() } catch (_: Exception) {} }
     }
 
     fun trackedEndLine(commentId: String, document: Document): Int? {
@@ -95,7 +99,9 @@ object InlineCommentManager {
 
     fun reapplyInlineComments(project: Project, editor: Editor, filePath: String) {
         val session = ReviewSessionService.getInstance(project).currentSession
-        val matching = session.comments.filter { it.filePath == filePath && it.lineStart != null }
+        // The comment being edited has the editor inlay in place of its display inlay.
+        val editingId = currentCommentEditor?.commentId
+        val matching = session.comments.filter { it.filePath == filePath && it.lineStart != null && it.id != editingId }
         log.warn("[CodeReview] reapplyInlineComments: filePath=$filePath, editor=${System.identityHashCode(editor)}, matchingComments=${matching.size}, totalInlays=${inlays.size}")
         matching.forEach { comment ->
                 val existing = inlays[comment.id]
@@ -151,7 +157,12 @@ object InlineCommentManager {
                 EditorEmbeddedComponentManager.ResizePolicy.none(), null, true, false, 0, offset
             )
         ) ?: return
-        currentCommentEditor = OpenCommentEditor(inlay, editor, onCancel)
+        val lifetime = Disposer.newDisposable()
+        val open = OpenCommentEditor(inlay, editor, existingComment?.id, onCancel, lifetime)
+        currentCommentEditor = open
+        // Closing the host editor disposes the inlay without a cancel, which would leave this stale.
+        EditorUtil.disposeWithEditor(editor, lifetime)
+        Disposer.register(lifetime) { if (currentCommentEditor === open) currentCommentEditor = null }
 
         panel.onContentResized = {
             if (inlay.isValid) {
@@ -165,7 +176,13 @@ object InlineCommentManager {
         IdeFocusManager.getInstance(project).requestFocus(panel.textField, true)
     }
 
-    private class OpenCommentEditor(val inlay: Inlay<*>, val editor: Editor, val onCancel: (() -> Unit)?)
+    private class OpenCommentEditor(
+        val inlay: Inlay<*>,
+        val editor: Editor,
+        val commentId: String?,
+        val onCancel: (() -> Unit)?,
+        val lifetime: Disposable
+    )
 
     private var currentCommentEditor: OpenCommentEditor? = null
 
@@ -174,6 +191,7 @@ object InlineCommentManager {
     private fun closeCommentEditor(cancelled: Boolean) {
         val open = currentCommentEditor ?: return
         currentCommentEditor = null
+        Disposer.dispose(open.lifetime)
         Disposer.dispose(open.inlay)
         if (cancelled) open.onCancel?.invoke()
         open.editor.project?.let { IdeFocusManager.getInstance(it).requestFocus(open.editor.contentComponent, true) }
