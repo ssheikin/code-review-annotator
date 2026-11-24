@@ -1,19 +1,27 @@
 package com.codereview.toolwindow
 
+import com.codereview.actions.CommentDialog
 import com.codereview.actions.RedoReviewChangeAction
 import com.codereview.actions.UndoReviewChangeAction
+import com.codereview.editor.InlineCommentEditorPanel
 import com.codereview.editor.InlineCommentManager
 import com.codereview.model.CommentScope
+import com.codereview.model.CommentType
 import com.codereview.model.ReviewComment
 import com.codereview.service.ReviewSessionService
 import com.codereview.ui.accentColor
 import com.codereview.ui.listBackground
+import com.intellij.icons.AllIcons
 import com.intellij.diff.editor.ChainDiffVirtualFile
 import com.intellij.diff.util.DiffUserDataKeys
 import com.intellij.diff.util.Side
+import com.intellij.ide.IdeEventQueue
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.Pair
 import com.intellij.openapi.vcs.changes.ChangeListManager
@@ -22,17 +30,30 @@ import com.intellij.openapi.vcs.changes.ui.ChangeDiffRequestChain
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.IdeActions
+import com.intellij.openapi.actionSystem.KeyboardShortcut
+import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.JBColor
+import com.intellij.ui.PopupHandler
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.PathUtil
+import com.intellij.util.ui.ColorIcon
+import com.intellij.util.ui.JBUI
 import com.intellij.util.text.DateFormatUtil
 import com.intellij.vcsUtil.VcsUtil
 import java.awt.*
+import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.geom.RoundRectangle2D
@@ -80,6 +101,7 @@ class ReviewPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     private val listModel = DefaultListModel<ReviewListItem>()
     private val commentList = JBList<ReviewListItem>(listModel)
+    private val cellRenderer = ReviewListCellRenderer()
     private val summaryArea = JTextArea(4, 0).apply {
         lineWrap = true
         wrapStyleWord = true
@@ -87,69 +109,107 @@ class ReviewPanel(private val project: Project) : JPanel(BorderLayout()) {
         toolTipText = "Review summary"
     }
     private var updatingSummary = false
+    private var lastSelectedIndex = -1
 
     init {
-        commentList.cellRenderer = ReviewListCellRenderer()
+        commentList.cellRenderer = cellRenderer
         commentList.fixedCellHeight = -1
 
         // Suppress selection on header items
         commentList.addListSelectionListener(ListSelectionListener { e ->
             if (e.valueIsAdjusting) return@ListSelectionListener
+            // Mouse clicks navigate on their own, so only the arrow keys open the code here.
+            val byKeyboard = IdeEventQueue.getInstance().trueCurrentEvent is KeyEvent
             val index = commentList.selectedIndex
             if (index >= 0 && listModel.getElementAt(index) is ReviewListItem.Header) {
-                commentList.clearSelection()
+                // Arrow keys step over file headers instead of stopping on them.
+                val next = if (index > lastSelectedIndex) index + 1 else index - 1
+                val target = if (next in 0 until listModel.size() && listModel.getElementAt(next) is ReviewListItem.Comment) next else lastSelectedIndex
+                if (byKeyboard && target >= 0) {
+                    commentList.selectedIndex = target
+                    commentList.ensureIndexIsVisible(target)
+                } else {
+                    commentList.clearSelection()
+                }
+                return@ListSelectionListener
             }
+            lastSelectedIndex = index
+            if (byKeyboard) selectedComment()?.let { navigateToComment(it, focusEditor = false) }
         })
 
         commentList.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
-                val index = commentList.locationToIndex(e.point)
-                if (index < 0) return
-                val cellBounds = commentList.getCellBounds(index, index) ?: return
-                if (!cellBounds.contains(e.point)) return
-
-                val item = listModel.getElementAt(index)
-                if (item is ReviewListItem.Header) return
-
-                val comment = (item as ReviewListItem.Comment).comment
-
-                // Check if the click is on the delete button
-                val relativeX = e.point.x - cellBounds.x
-                val relativeY = e.point.y - cellBounds.y
-                val renderer = CommentCellPanel()
-                renderer.configure(comment, false, commentList)
-                renderer.setSize(cellBounds.width, cellBounds.height)
-                renderer.doLayout()
-                // Force a paint to compute deleteBtnBounds
-                val img = java.awt.image.BufferedImage(cellBounds.width, cellBounds.height, java.awt.image.BufferedImage.TYPE_INT_ARGB)
-                renderer.paintComponent(img.createGraphics())
-
-                if (renderer.isDeleteHit(relativeX, relativeY)) {
-                    deleteComment(comment)
-                } else {
-                    navigateToComment(comment)
+                if (!SwingUtilities.isLeftMouseButton(e)) return
+                val hit = hitCell(e.point) ?: return
+                when {
+                    // The second click of a double-click would delete the row that moved up under the pointer.
+                    hit.cell.isDeleteHit(hit.x, hit.y) -> if (e.clickCount == 1) deleteComment(hit.comment)
+                    hit.cell.isBadgeHit(hit.x, hit.y) -> if (e.clickCount == 1) showTypePopup(hit)
+                    // A single click keeps focus in the list, so its shortcuts still apply to the row.
+                    e.clickCount == 1 -> navigateToComment(hit.comment, focusEditor = false)
+                    e.clickCount == 2 -> editComment(hit.comment)
                 }
+            }
+
+            override fun mouseExited(e: MouseEvent) {
+                setHover(-1, false)
             }
         })
 
         commentList.addMouseMotionListener(object : MouseAdapter() {
             override fun mouseMoved(e: MouseEvent) {
-                val index = commentList.locationToIndex(e.point)
-                if (index < 0) {
-                    commentList.cursor = Cursor.getDefaultCursor()
-                    return
-                }
-                val cellBounds = commentList.getCellBounds(index, index) ?: return
-                if (!cellBounds.contains(e.point)) {
-                    commentList.cursor = Cursor.getDefaultCursor()
-                    return
-                }
-                val item = listModel.getElementAt(index)
-                if (item is ReviewListItem.Header) {
-                    commentList.cursor = Cursor.getDefaultCursor()
-                    return
-                }
-                commentList.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                val hit = updateHover(e.point)
+                commentList.cursor = if (hit != null) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) else Cursor.getDefaultCursor()
+            }
+        })
+
+        val deleteAction = object : DumbAwareAction("Delete", null, AllIcons.General.Remove) {
+            override fun actionPerformed(e: AnActionEvent) {
+                selectedComment()?.let { deleteComment(it) }
+            }
+
+            override fun update(e: AnActionEvent) {
+                e.presentation.isEnabled = selectedComment() != null
+            }
+
+            override fun getActionUpdateThread() = ActionUpdateThread.EDT
+        }
+        deleteAction.registerCustomShortcutSet(
+            CustomShortcutSet(KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), null), KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), null)),
+            commentList
+        )
+        val typeActions = InlineCommentEditorPanel.installTypeShortcuts(
+            commentList, { selectedComment() != null }, { selectedComment()?.type == it }
+        ) { type ->
+            selectedComment()?.let { changeType(it, type) }
+        }
+        val editAction = object : DumbAwareAction("Edit", null, AllIcons.Actions.Edit) {
+            override fun actionPerformed(e: AnActionEvent) {
+                selectedComment()?.let { editComment(it) }
+            }
+
+            override fun update(e: AnActionEvent) {
+                e.presentation.isEnabled = selectedComment() != null
+            }
+
+            override fun getActionUpdateThread() = ActionUpdateThread.EDT
+        }
+        editAction.registerCustomShortcutSet(
+            CustomShortcutSet(KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), null), KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), null)),
+            commentList
+        )
+
+        // The same action instances as the shortcuts, so the menu shows their keys.
+        val contextGroup = DefaultActionGroup(
+            listOf(editAction, Separator.getInstance()) + typeActions + Separator.getInstance() + deleteAction
+        )
+        commentList.addMouseListener(object : PopupHandler() {
+            override fun invokePopup(comp: Component, x: Int, y: Int) {
+                val hit = hitCell(Point(x, y)) ?: return
+                commentList.selectedIndex = hit.index
+                ActionManager.getInstance()
+                    .createActionPopupMenu(ActionPlaces.POPUP, contextGroup)
+                    .component.show(comp, x, y)
             }
         })
 
@@ -221,28 +281,46 @@ class ReviewPanel(private val project: Project) : JPanel(BorderLayout()) {
         } finally {
             updatingSummary = false
         }
+        updateHover(commentList.mousePosition)
     }
 
-    private fun navigateToComment(comment: ReviewComment) {
-        val filePath = comment.filePath ?: return
-        val basePath = project.basePath ?: return
+    private fun navigateToComment(comment: ReviewComment, focusEditor: Boolean): Editor? {
+        val filePath = comment.filePath ?: return null
+        val basePath = project.basePath ?: return null
         val fullPath = "$basePath/$filePath"
         val line = ((comment.lineStart ?: 1) - 1).coerceAtLeast(0)
 
         val vf = LocalFileSystem.getInstance().findFileByPath(fullPath)
         if (vf != null) {
             val descriptor = OpenFileDescriptor(project, vf, line, 0)
-            FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
-            return
+            return FileEditorManager.getInstance(project).openTextEditor(descriptor, focusEditor)
         }
 
         // A deleted file survives only as the left side of its diff.
-        val change = ChangeListManager.getInstance(project).getChange(VcsUtil.getFilePath(fullPath, false)) ?: return
+        val change = ChangeListManager.getInstance(project).getChange(VcsUtil.getFilePath(fullPath, false)) ?: return null
         val context = mapOf<Key<*>, Any>(DiffUserDataKeys.SCROLL_TO_LINE to Pair.create(Side.LEFT, line))
-        val producer = ChangeDiffRequestProducer.create(project, change, context) ?: return
+        val producer = ChangeDiffRequestProducer.create(project, change, context) ?: return null
         val chain = ChangeDiffRequestChain(listOf(producer), 0)
         // Opened as a plain editor file, because the diff manager may put it in a separate window.
-        FileEditorManager.getInstance(project).openFile(ChainDiffVirtualFile(chain, PathUtil.getFileName(filePath)), true)
+        FileEditorManager.getInstance(project).openFile(ChainDiffVirtualFile(chain, PathUtil.getFileName(filePath)), focusEditor)
+        return null
+    }
+
+    private fun editComment(comment: ReviewComment) {
+        if (comment.scope == CommentScope.LINE) {
+            // A deleted file opens as a diff, which has no editor to hold the comment editor.
+            // Focus goes from the list straight to the comment editor, not via the main editor.
+            val editor = navigateToComment(comment, focusEditor = false) ?: return
+            InlineCommentManager.editComment(project, editor, comment)
+            return
+        }
+        // File comments have no line to anchor the inline editor to.
+        val dialog = CommentDialog(project, "Edit File Comment", comment.type, comment.text, filePath = comment.filePath)
+        if (!dialog.showAndGet()) return
+        ReviewSessionService.getInstance(project).updateComment(comment.id) {
+            it.copy(type = dialog.selectedType, text = dialog.commentText)
+        }
+        refresh()
     }
 
     private fun deleteComment(comment: ReviewComment) {
@@ -250,11 +328,89 @@ class ReviewPanel(private val project: Project) : JPanel(BorderLayout()) {
         ReviewSessionService.getInstance(project).removeComment(comment.id)
         refresh()
     }
+
+    private class CellHit(val index: Int, val comment: ReviewComment, val cellBounds: Rectangle, val cell: CommentCellPanel, val x: Int, val y: Int)
+
+    private fun hitCell(point: Point): CellHit? {
+        val index = commentList.locationToIndex(point)
+        if (index < 0) return null
+        val cellBounds = commentList.getCellBounds(index, index) ?: return null
+        if (!cellBounds.contains(point)) return null
+        val comment = (listModel.getElementAt(index) as? ReviewListItem.Comment)?.comment ?: return null
+
+        // The row under the pointer always shows its delete button.
+        val renderer = CommentCellPanel()
+        renderer.configure(comment, false, commentList, showDelete = true, deleteHovered = false)
+        renderer.setSize(cellBounds.width, cellBounds.height)
+        renderer.doLayout()
+        // Force a paint to compute deleteBtnBounds and badgeBounds
+        val img = java.awt.image.BufferedImage(cellBounds.width, cellBounds.height, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        val g = img.createGraphics()
+        renderer.paintComponent(g)
+        g.dispose()
+        return CellHit(index, comment, cellBounds, renderer, point.x - cellBounds.x, point.y - cellBounds.y)
+    }
+
+    // Also called after refresh, because rows under a still pointer change when comments come and go.
+    private fun updateHover(point: Point?): CellHit? {
+        val hit = point?.let { hitCell(it) }
+        setHover(hit?.index ?: -1, hit != null && hit.cell.isDeleteHit(hit.x, hit.y))
+        return hit
+    }
+
+    private fun setHover(index: Int, overDelete: Boolean) {
+        if (cellRenderer.hoveredIndex == index && cellRenderer.deleteHovered == overDelete) return
+        cellRenderer.hoveredIndex = index
+        cellRenderer.deleteHovered = overDelete
+        commentList.repaint()
+    }
+
+    private fun selectedComment(): ReviewComment? = (commentList.selectedValue as? ReviewListItem.Comment)?.comment
+
+    private fun showTypePopup(hit: CellHit) {
+        val badge = hit.cell.badgeBounds ?: return
+        JBPopupFactory.getInstance()
+            .createPopupChooserBuilder(CommentType.entries)
+            .setRenderer(object : ColoredListCellRenderer<CommentType>() {
+                override fun customizeCellRenderer(
+                    list: JList<out CommentType>, value: CommentType?, index: Int, selected: Boolean, hasFocus: Boolean
+                ) {
+                    value ?: return
+                    // A colour chip rather than coloured text, since the accents are too dark to read on dark popups.
+                    icon = ColorIcon(JBUI.scale(10), value.accentColor)
+                    append(value.label, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+                    append("  ${InlineCommentEditorPanel.typeShortcutText(value)}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                }
+            })
+            .setSelectedValue(hit.comment.type, true)
+            .setItemChosenCallback { changeType(hit.comment, it) }
+            .createPopup()
+            .show(RelativePoint(commentList, Point(hit.cellBounds.x + badge.x, hit.cellBounds.y + badge.y + badge.height)))
+    }
+
+    private fun changeType(comment: ReviewComment, type: CommentType) {
+        // The popup can outlive the comment it was opened for, through undo or an agent edit.
+        val current = ReviewSessionService.getInstance(project).currentSession.comments.find { it.id == comment.id } ?: return
+        if (current.type == type) return
+        ReviewSessionService.getInstance(project).updateComment(comment.id) { it.copy(type = type) }
+        InlineCommentManager.showTypeInOpenEditor(comment.id, type)
+        // The list knows no editor for the comment, so every inlay is rebuilt, as undo does.
+        InlineCommentManager.resyncAll(project)
+        refresh()
+        // Keeps Alt+1..3 working on the same row, since refresh drops the selection.
+        val index = (0 until listModel.size()).firstOrNull {
+            (listModel.getElementAt(it) as? ReviewListItem.Comment)?.comment?.id == comment.id
+        }
+        if (index != null) commentList.selectedIndex = index
+    }
 }
 
 private class ReviewListCellRenderer : ListCellRenderer<ReviewListItem> {
     private val headerPanel = HeaderCellPanel()
     private val commentPanel = CommentCellPanel()
+
+    var hoveredIndex = -1
+    var deleteHovered = false
 
     override fun getListCellRendererComponent(
         list: JList<out ReviewListItem>,
@@ -269,7 +425,11 @@ private class ReviewListCellRenderer : ListCellRenderer<ReviewListItem> {
                 headerPanel
             }
             is ReviewListItem.Comment -> {
-                commentPanel.configure(value.comment, isSelected, list)
+                commentPanel.configure(
+                    value.comment, isSelected, list,
+                    showDelete = isSelected || index == hoveredIndex,
+                    deleteHovered = deleteHovered && index == hoveredIndex
+                )
                 commentPanel
             }
         }
@@ -323,21 +483,33 @@ private class CommentCellPanel : JPanel() {
     private var isSelectedState = false
     private var listRef: JList<*>? = null
 
+    private var showDelete = false
+    private var deleteHovered = false
+
     private var deleteBtnBounds: Rectangle? = null
+    var badgeBounds: Rectangle? = null
+        private set
 
     init {
         isOpaque = false
         border = BorderFactory.createEmptyBorder(0, 0, 1, 0) // 1px separator
     }
 
-    fun configure(comment: ReviewComment, isSelected: Boolean, list: JList<*>) {
+    fun configure(comment: ReviewComment, isSelected: Boolean, list: JList<*>, showDelete: Boolean, deleteHovered: Boolean) {
         this.comment = comment
         this.isSelectedState = isSelected
         this.listRef = list
+        this.showDelete = showDelete
+        this.deleteHovered = deleteHovered
     }
 
     fun isDeleteHit(x: Int, y: Int): Boolean {
         val bounds = deleteBtnBounds ?: return false
+        return bounds.contains(x, y)
+    }
+
+    fun isBadgeHit(x: Int, y: Int): Boolean {
+        val bounds = badgeBounds ?: return false
         return bounds.contains(x, y)
     }
 
@@ -396,6 +568,7 @@ private class CommentCellPanel : JPanel() {
         g2.color = Color.WHITE
         val badgeTextY = currentY + badgeFm.ascent + (BADGE_HEIGHT - badgeFm.height) / 2
         g2.drawString(badgeText, contentX + BADGE_PAD_H, badgeTextY)
+        badgeBounds = Rectangle(contentX, currentY, badgeW, BADGE_HEIGHT)
 
         // Location text
         val locationFont = baseFont.deriveFont(Font.PLAIN, baseFont.size2D - 1f)
@@ -411,24 +584,19 @@ private class CommentCellPanel : JPanel() {
         val locY = currentY + locFm.ascent + (BADGE_HEIGHT - locFm.height) / 2
         g2.drawString(locationText, locX, locY)
 
-        // Delete button (right side) — small "x" icon
-        val deleteFont = baseFont.deriveFont(Font.BOLD, baseFont.size2D)
-        g2.font = deleteFont
-        val delFm = g2.fontMetrics
-        val delText = "\u00D7" // multiplication sign as close icon
-        val delTextW = delFm.stringWidth(delText)
-        val delBtnSize = BADGE_HEIGHT + 2
-        val delX = w - PADDING_RIGHT - delBtnSize
-        val delY = currentY + (BADGE_HEIGHT - delBtnSize) / 2
-
-        // Delete button background
-        g2.color = JBColor(Color(0, 0, 0, 0), Color(0, 0, 0, 0)) // transparent by default
-        g2.fill(RoundRectangle2D.Float(delX.toFloat(), delY.toFloat(), delBtnSize.toFloat(), delBtnSize.toFloat(), 4f, 4f))
-        g2.color = JBColor(Color(180, 80, 80), Color(220, 100, 100))
-        val delTextX = delX + (delBtnSize - delTextW) / 2
-        val delTextY = delY + delFm.ascent + (delBtnSize - delFm.height) / 2
-        g2.drawString(delText, delTextX, delTextY)
-        deleteBtnBounds = Rectangle(delX, delY, delBtnSize, delBtnSize)
+        // Delete button (right side), styled like the editor inlay's
+        deleteBtnBounds = null
+        if (showDelete) {
+            val deleteIcon = AllIcons.General.Remove
+            val delBtnW = deleteIcon.iconWidth + ICON_BTN_PAD * 2
+            val delX = w - PADDING_RIGHT - delBtnW
+            if (deleteHovered) {
+                g2.color = JBColor(Color(0, 0, 0, 30), Color(255, 255, 255, 30))
+                g2.fillRoundRect(delX, currentY, delBtnW, BADGE_HEIGHT, 4, 4)
+            }
+            deleteIcon.paintIcon(this, g2, delX + ICON_BTN_PAD, currentY + (BADGE_HEIGHT - deleteIcon.iconHeight) / 2)
+            deleteBtnBounds = Rectangle(delX, currentY, delBtnW, BADGE_HEIGHT)
+        }
 
         currentY += BADGE_HEIGHT + GAP
 
@@ -457,6 +625,7 @@ private class CommentCellPanel : JPanel() {
         private const val BADGE_HEIGHT = 18
         private const val BADGE_PAD_H = 6
         private const val GAP = 4
+        private const val ICON_BTN_PAD = 3
 
         private fun formatLocation(comment: ReviewComment): String = when (comment.scope) {
             CommentScope.LINE -> {

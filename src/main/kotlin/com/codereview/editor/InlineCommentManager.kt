@@ -137,9 +137,20 @@ object InlineCommentManager {
                 ReviewToolWindowFactory.refreshPanel(project)
             },
             onCancel = {
-                InlineCommentManager.addInlineComment(project, editor, comment)
+                // The type may have changed while editing, and cancel keeps it.
+                val current = ReviewSessionService.getInstance(project).currentSession.comments.find { it.id == comment.id } ?: comment
+                InlineCommentManager.addInlineComment(project, editor, current)
+            },
+            onTypeChanged = { type ->
+                ReviewSessionService.getInstance(project).updateComment(comment.id) { it.copy(type = type) }
+                ReviewToolWindowFactory.refreshPanel(project)
             }
         )
+    }
+
+    fun showTypeInOpenEditor(commentId: String, type: CommentType) {
+        val open = currentCommentEditor ?: return
+        if (open.commentId == commentId) open.panel.selectType(type)
     }
 
     /**
@@ -153,7 +164,8 @@ object InlineCommentManager {
         line1Based: Int,
         existingComment: ReviewComment?,
         onSave: (CommentType, String) -> Unit,
-        onCancel: (() -> Unit)? = null
+        onCancel: (() -> Unit)? = null,
+        onTypeChanged: (CommentType) -> Unit = {}
     ) {
         closeCommentEditor(cancelled = true)
         val editorEx = editor as? EditorEx ?: return
@@ -173,6 +185,7 @@ object InlineCommentManager {
             },
             onCancel = { closeCommentEditor(cancelled = true) }
         )
+        panel.onTypeChanged = onTypeChanged
         panel.fixedWidth = (editor.scrollingModel.visibleArea.width - EDITOR_MARGIN).coerceAtLeast(400)
 
         val inlay = EditorEmbeddedComponentManager.getInstance().addComponent(
@@ -183,7 +196,7 @@ object InlineCommentManager {
             )
         ) ?: return
         val lifetime = Disposer.newDisposable()
-        val open = OpenCommentEditor(inlay, editor, existingComment?.id, onCancel, lifetime)
+        val open = OpenCommentEditor(inlay, editor, panel, existingComment?.id, onCancel, lifetime)
         currentCommentEditor = open
         // Closing the host editor disposes the inlay without a cancel, which would leave this stale.
         EditorUtil.disposeWithEditor(editor, lifetime)
@@ -198,12 +211,17 @@ object InlineCommentManager {
         }
 
         editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(offset), ScrollType.MAKE_VISIBLE)
-        IdeFocusManager.getInstance(project).requestFocus(panel.textField, true)
+        // Deferred, because a file opened just before may still be taking focus for its editor.
+        val focusManager = IdeFocusManager.getInstance(project)
+        focusManager.doWhenFocusSettlesDown {
+            if (inlay.isValid) focusManager.requestFocus(panel.textField, true)
+        }
     }
 
     private class OpenCommentEditor(
         val inlay: Inlay<*>,
         val editor: Editor,
+        val panel: InlineCommentEditorPanel,
         val commentId: String?,
         val onCancel: (() -> Unit)?,
         val lifetime: Disposable

@@ -52,6 +52,9 @@ class InlineCommentEditorPanel(
 
     var onContentResized: () -> Unit = {}
 
+    // Lets an existing comment take the new type at once, so the list shows it while the text is edited.
+    var onTypeChanged: (CommentType) -> Unit = {}
+
     init {
         border = BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 3, 0, 0, initialType.accentColor),
@@ -62,7 +65,7 @@ class InlineCommentEditorPanel(
         val typeGroup = ButtonGroup()
         typeButtons.forEach { (type, button) ->
             typeGroup.add(button)
-            button.addActionListener { selectType(type) }
+            button.addActionListener { pickType(type) }
         }
         typeButtons.getValue(initialType).isSelected = true
 
@@ -98,7 +101,7 @@ class InlineCommentEditorPanel(
         }
         add(hintLabel, BorderLayout.SOUTH)
 
-        installTypeShortcuts(textField) { selectType(it) }
+        installTypeShortcuts(textField) { pickType(it) }
 
         // IDE actions, so they win over the nested editor's own Escape and Enter handling.
         // Ctrl+Enter also saves on macOS, where users used it before Cmd+Enter existed.
@@ -123,7 +126,13 @@ class InlineCommentEditorPanel(
         return Dimension(fixedWidth, chrome + textHeight)
     }
 
-    private fun selectType(type: CommentType) {
+    private fun pickType(type: CommentType) {
+        if (type == selectedType) return
+        selectType(type)
+        onTypeChanged(type)
+    }
+
+    fun selectType(type: CommentType) {
         selectedType = type
         typeButtons.getValue(type).isSelected = true
         border = BorderFactory.createCompoundBorder(
