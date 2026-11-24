@@ -26,6 +26,7 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
+import com.intellij.util.text.DateFormatUtil
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -396,7 +397,7 @@ private class CommentCellPanel : JPanel() {
         val locationFont = baseFont.deriveFont(Font.PLAIN, baseFont.size2D - 1f)
         g2.font = locationFont
         val locFm = g2.fontMetrics
-        val locationText = formatLocation(comment)
+        val locationText = "${formatLocation(comment)} · ${DateFormatUtil.formatBetweenDates(comment.createdAt, System.currentTimeMillis())}"
         if (isSelectedState) {
             g2.color = listRef?.selectionForeground ?: UIManager.getColor("List.selectionForeground")
         } else {
