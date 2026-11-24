@@ -17,7 +17,7 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = [
-            pkgs.jdk21
+            pkgs.jdk25
             pkgs.gradle
           ];
         };

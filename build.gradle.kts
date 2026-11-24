@@ -1,7 +1,7 @@
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.9.25"
-    id("org.jetbrains.intellij.platform") version "2.2.1"
+    id("org.jetbrains.kotlin.jvm") version "2.4.21"
+    id("org.jetbrains.intellij.platform") version "2.20.1"
 }
 
 group = "com.codereview"
@@ -16,8 +16,9 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity("2024.3")
+        intellijIdea("2026.3")
         bundledPlugin("Git4Idea")
+        bundledPlugin("com.intellij.platform.vcs")
         bundledPlugin("org.jetbrains.plugins.terminal")
         pluginVerifier()
     }
@@ -25,7 +26,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 intellijPlatform {
@@ -44,7 +45,7 @@ intellijPlatform {
             Initial release.
         """.trimIndent()
         ideaVersion {
-            sinceBuild = "243"
+            sinceBuild = "263"
             untilBuild = provider { null }
         }
         vendor {
