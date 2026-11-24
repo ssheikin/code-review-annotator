@@ -73,8 +73,16 @@ I reviewed your code and have the following comments. Please address them.
 
 1. **[SUGGESTION]** `src/auth.go:42` - Consider adding unit tests
 2. **[MUST_DO]** `src/handler.go:10-15` - Race condition on shared map
+   ```
+   ...
+   ```
 3. **[QUESTION]** `src/handler.go:20` - Why not reuse the existing pool?
+   ```
+   pool := newPool()
+   ```
 ```
+
+Line comments quote up to 15 lines of the code they point at.
 
 ### Submit with a custom command
 

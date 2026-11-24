@@ -1,6 +1,7 @@
 package com.codereview.actions
 
 import com.codereview.export.MarkdownExporter
+import com.codereview.export.ProjectSnippets
 import com.codereview.service.ReviewSessionService
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
@@ -28,7 +29,7 @@ class ExportToClipboardAction : AnAction(
         }
 
         val commentCount = session.comments.count { it.scope != com.codereview.model.CommentScope.REVIEW }
-        val markdown = MarkdownExporter.export(session)
+        val markdown = MarkdownExporter.export(session, ProjectSnippets.reader(project))
         CopyPasteManager.getInstance().setContents(StringSelection(markdown))
 
         NotificationGroupManager.getInstance()

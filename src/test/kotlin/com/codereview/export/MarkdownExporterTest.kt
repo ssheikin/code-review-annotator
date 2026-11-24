@@ -86,4 +86,27 @@ class MarkdownExporterTest {
         assertTrue(result.contains("I reviewed your code and have the following comments."))
         assertFalse(result.contains("Comment types:"))
     }
+
+    @Test
+    fun `export quotes snippet under line comment`() {
+        val session = ReviewSession(
+            comments = mutableListOf(
+                ReviewComment(scope = CommentScope.LINE, text = "Why?", filePath = "a.go", lineStart = 3)
+            )
+        )
+        val result = MarkdownExporter.export(session) { listOf("x := 1") }
+        assertTrue(result.contains("1. **[QUESTION]** `a.go:3` - Why?\n   ```\n   x := 1\n   ```"))
+    }
+
+    @Test
+    fun `export truncates long snippet`() {
+        val session = ReviewSession(
+            comments = mutableListOf(
+                ReviewComment(scope = CommentScope.LINE, text = "Long", filePath = "a.go", lineStart = 1, lineEnd = 40)
+            )
+        )
+        val result = MarkdownExporter.export(session) { (1..40).map { "line $it" } }
+        assertTrue(result.contains("   line 15\n   …\n"))
+        assertFalse(result.contains("line 16"))
+    }
 }
