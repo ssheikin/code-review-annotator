@@ -64,6 +64,18 @@
             <add-to-group group-id="TerminalToolwindowActionGroup" anchor="last"/>
         </action>
 
+        <action id="CodeReview.Undo"
+                class="com.codereview.actions.UndoReviewChangeAction"
+                text="Undo Review Change"
+                description="Undo the last change to review comments">
+        </action>
+
+        <action id="CodeReview.Redo"
+                class="com.codereview.actions.RedoReviewChangeAction"
+                text="Redo Review Change"
+                description="Redo the last undone change to review comments">
+        </action>
+
         <!-- File comment from Changes view popup -->
         <action id="CodeReview.AddFileComment"
                 class="com.codereview.actions.AddFileCommentAction"
@@ -87,6 +99,9 @@
             <reference ref="CodeReview.ExportToTerminal"/>
             <reference ref="CodeReview.ExportToClipboard"/>
             <reference ref="CodeReview.ClearSession"/>
+            <separator/>
+            <reference ref="CodeReview.Undo"/>
+            <reference ref="CodeReview.Redo"/>
         </group>
     </actions>
 </idea-plugin>

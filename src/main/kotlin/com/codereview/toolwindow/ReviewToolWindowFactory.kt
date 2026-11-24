@@ -1,5 +1,7 @@
 package com.codereview.toolwindow
 
+import com.codereview.actions.RedoReviewChangeAction
+import com.codereview.actions.UndoReviewChangeAction
 import com.codereview.editor.InlineCommentManager
 import com.codereview.model.CommentScope
 import com.codereview.model.CommentType
@@ -16,6 +18,7 @@ import com.intellij.openapi.vcs.changes.ui.ChangeDiffRequestChain
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.JBColor
@@ -142,6 +145,15 @@ class ReviewPanel(private val project: Project) : JPanel(BorderLayout()) {
                 commentList.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
             }
         })
+
+        // The platform undo/redo shortcuts act on the review when the list has focus.
+        val actionManager = ActionManager.getInstance()
+        UndoReviewChangeAction().registerCustomShortcutSet(
+            actionManager.getAction(IdeActions.ACTION_UNDO).shortcutSet, commentList
+        )
+        RedoReviewChangeAction().registerCustomShortcutSet(
+            actionManager.getAction(IdeActions.ACTION_REDO).shortcutSet, commentList
+        )
 
         // Summary area document listener
         summaryArea.document.addDocumentListener(object : DocumentListener {

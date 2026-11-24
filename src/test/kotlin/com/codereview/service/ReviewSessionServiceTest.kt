@@ -125,4 +125,55 @@ class ReviewSessionServiceTest {
         assertNull(restored.lineStart)
         assertNull(restored.lineEnd)
     }
+
+    @Test
+    fun `undo and redo add comment`() {
+        service.addComment(ReviewComment(id = "c1", text = "First"))
+
+        service.undo()
+        assertTrue(service.currentSession.comments.isEmpty())
+        assertTrue(service.canRedo)
+
+        service.redo()
+        assertEquals("c1", service.currentSession.comments.single().id)
+    }
+
+    @Test
+    fun `undo restores comment state before update`() {
+        service.addComment(ReviewComment(id = "c1", text = "Original"))
+        service.updateComment("c1") { it.copy(text = "Updated") }
+
+        service.undo()
+        assertEquals("Original", service.currentSession.comments.single().text)
+    }
+
+    @Test
+    fun `undo clear restores comments and summary`() {
+        service.addComment(ReviewComment(id = "c1", text = "First"))
+        service.updateSummary("Summary")
+        service.clearSession()
+
+        service.undo()
+        assertEquals("c1", service.currentSession.comments.single().id)
+        assertEquals("Summary", service.currentSession.summary)
+    }
+
+    @Test
+    fun `undo comment change keeps summary typed later`() {
+        service.addComment(ReviewComment(id = "c1", text = "First"))
+        service.updateSummary("Typed later")
+
+        service.undo()
+        assertTrue(service.currentSession.comments.isEmpty())
+        assertEquals("Typed later", service.currentSession.summary)
+    }
+
+    @Test
+    fun `new change clears redo`() {
+        service.addComment(ReviewComment(id = "c1", text = "First"))
+        service.undo()
+        service.addComment(ReviewComment(id = "c2", text = "Second"))
+
+        assertFalse(service.canRedo)
+    }
 }

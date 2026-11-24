@@ -4,6 +4,7 @@ import com.codereview.model.CommentType
 import com.codereview.model.ReviewComment
 import com.codereview.service.ReviewSessionService
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.InlayProperties
 import com.intellij.openapi.diagnostic.Logger
@@ -73,6 +74,15 @@ object InlineCommentManager {
             try { inlay.dispose() } catch (_: Exception) {}
         }
         inlays.clear()
+    }
+
+    fun resyncAll(project: Project) {
+        clearAllInlineComments(project)
+        EditorFactory.getInstance().allEditors
+            .filter { it.project == project && !it.isDisposed }
+            .forEach { editor ->
+                resolveCommentPath(project, editor)?.let { reapplyInlineComments(project, editor, it) }
+            }
     }
 
     fun reapplyInlineComments(project: Project, editor: Editor, filePath: String) {

@@ -42,28 +42,67 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         @XCollection(elementName = "comment") var comments: MutableList<CommentState> = mutableListOf()
     }
 
+    private data class Snapshot(val comments: List<ReviewComment>, val summary: String)
+    private class Change(val before: Snapshot, val after: Snapshot)
+
     private var session: ReviewSession = ReviewSession()
+    private val undoStack = ArrayDeque<Change>()
+    private val redoStack = ArrayDeque<Change>()
 
     val currentSession: ReviewSession get() = session
+    val canUndo: Boolean get() = undoStack.isNotEmpty()
+    val canRedo: Boolean get() = redoStack.isNotEmpty()
+
+    private fun snapshot() = Snapshot(session.comments.toList(), session.summary)
+
+    private inline fun recorded(change: () -> Unit) {
+        val before = snapshot()
+        change()
+        val after = snapshot()
+        if (before == after) return
+        undoStack.addLast(Change(before, after))
+        if (undoStack.size > MAX_UNDO) undoStack.removeFirst()
+        redoStack.clear()
+    }
+
+    fun undo() {
+        val change = undoStack.removeLastOrNull() ?: return
+        restore(change.before, change)
+        redoStack.addLast(change)
+    }
+
+    fun redo() {
+        val change = redoStack.removeLastOrNull() ?: return
+        restore(change.after, change)
+        undoStack.addLast(change)
+    }
+
+    // Summary typing is not recorded, so restoring it from an unrelated
+    // change would silently drop what the user typed since.
+    private fun restore(target: Snapshot, change: Change) {
+        val summary = if (change.before.summary != change.after.summary) target.summary else session.summary
+        session = session.copy(comments = target.comments.toMutableList(), summary = summary)
+        fireCommentsChanged()
+    }
 
     private fun fireCommentsChanged() {
         project?.messageBus?.syncPublisher(ReviewCommentListener.TOPIC)?.commentsChanged()
     }
 
     fun addComment(comment: ReviewComment) {
-        session.comments.add(comment)
+        recorded { session.comments.add(comment) }
         fireCommentsChanged()
     }
 
     fun removeComment(commentId: String) {
-        session.comments.removeAll { it.id == commentId }
+        recorded { session.comments.removeAll { it.id == commentId } }
         fireCommentsChanged()
     }
 
     fun updateComment(commentId: String, updater: (ReviewComment) -> ReviewComment): ReviewComment? {
         val index = session.comments.indexOfFirst { it.id == commentId }
         if (index >= 0) {
-            session.comments[index] = updater(session.comments[index])
+            recorded { session.comments[index] = updater(session.comments[index]) }
             fireCommentsChanged()
             return session.comments[index]
         }
@@ -75,7 +114,7 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
     }
 
     fun clearSession() {
-        session = ReviewSession()
+        recorded { session = ReviewSession() }
         fireCommentsChanged()
     }
 
@@ -130,6 +169,8 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
     }
 
     companion object {
+        private const val MAX_UNDO = 100
+
         fun getInstance(project: Project): ReviewSessionService =
             project.getService(ReviewSessionService::class.java)
     }

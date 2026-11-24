@@ -80,4 +80,7 @@ I reviewed your code and have the following comments. Please address them.
 
 Click **Clear Session** in the tool window toolbar. This removes all comments and gutter icons.
 
+**Undo** and **Redo** in the toolbar revert any comment change, including a clear or a submit.
+With the comment list focused, the IDE undo and redo shortcuts work too.
+
 Comments persist across IDE restarts (stored in `.idea/workspace.xml`).
