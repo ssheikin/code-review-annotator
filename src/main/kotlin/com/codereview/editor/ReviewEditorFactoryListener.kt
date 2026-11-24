@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -79,8 +80,9 @@ private class ReviewEditorFactoryListenerImpl : EditorFactoryListener {
 
 private val resolveLog = Logger.getInstance("com.codereview.editor.ResolveCommentPath")
 
-internal fun resolveCommentPath(project: Project, editor: Editor): String? {
-    val projectBasePath = project.basePath ?: return null
+// Console viewers are created on the EDT outside a read action, and looking up documents needs one.
+internal fun resolveCommentPath(project: Project, editor: Editor): String? = runReadAction {
+    val projectBasePath = project.basePath ?: return@runReadAction null
     val session = ReviewSessionService.getInstance(project).currentSession
 
     val vfile = FileDocumentManager.getInstance().getFile(editor.document)
@@ -96,15 +98,15 @@ internal fun resolveCommentPath(project: Project, editor: Editor): String? {
         val vf = LocalFileSystem.getInstance().findFileByPath(fullPath) ?: continue
         val doc = FileDocumentManager.getInstance().getDocument(vf) ?: continue
         resolveLog.warn("[CodeReview] resolveCommentPath check: relativePath=$relativePath, docFromVf=${System.identityHashCode(doc)}, editorDoc=${System.identityHashCode(editor.document)}, same=${doc === editor.document}")
-        if (doc === editor.document) return relativePath
+        if (doc === editor.document) return@runReadAction relativePath
     }
 
     // Fallback for regular editors (also handles files with no comments yet)
     val file = vfile ?: run {
         resolveLog.warn("[CodeReview] resolveCommentPath: SKIP — FileDocumentManager.getFile() returned null for document ${System.identityHashCode(editor.document)}")
-        return null
+        return@runReadAction null
     }
-    return file.path.let {
+    file.path.let {
         if (it.startsWith(projectBasePath)) it.removePrefix(projectBasePath).removePrefix("/") else it
     }
 }
