@@ -9,6 +9,8 @@ import com.intellij.openapi.vfs.LocalFileSystem
 object ProjectSnippets {
 
     fun reader(project: Project): (ReviewComment) -> List<String>? = reader@{ comment ->
+        // The original code is what the comment is about, even after the file changed.
+        comment.anchorText?.let { return@reader it.split("\n") }
         val start = comment.lineStart ?: return@reader null
         val path = comment.filePath ?: return@reader null
         val vf = LocalFileSystem.getInstance().findFileByPath("${project.basePath}/$path") ?: return@reader null

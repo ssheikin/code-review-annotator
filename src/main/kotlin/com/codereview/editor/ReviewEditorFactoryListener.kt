@@ -27,6 +27,7 @@ class ReviewEditorListenerStartup : ProjectActivity {
     override suspend fun execute(project: Project) {
         val listener = ReviewEditorFactoryListenerImpl()
         EditorFactory.getInstance().addEditorFactoryListener(listener, project)
+        CommentAnchors.install(project, project)
     }
 }
 

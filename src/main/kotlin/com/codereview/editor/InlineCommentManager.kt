@@ -3,6 +3,7 @@ package com.codereview.editor
 import com.codereview.model.CommentType
 import com.codereview.model.ReviewComment
 import com.codereview.service.ReviewSessionService
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.Inlay
@@ -54,6 +55,11 @@ object InlineCommentManager {
         }
         log.warn("[CodeReview] addInlineComment OK: commentId=${comment.id}, line=${lineStart+1}, editor=${System.identityHashCode(editor)}, inlay=${System.identityHashCode(inlay)}")
         inlays[comment.id] = inlay
+    }
+
+    fun trackedEndLine(commentId: String, document: Document): Int? {
+        val inlay = inlays[commentId]?.takeIf { it.isValid && it.editor.document == document } ?: return null
+        return document.getLineNumber(inlay.offset) + 1
     }
 
     fun removeInlineComment(commentId: String) {

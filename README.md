@@ -87,6 +87,10 @@ I reviewed your code and have the following comments. Please address them.
 
 Line comments quote up to 15 lines of the code they point at.
 
+Line comments follow their code. When lines are added or removed above it, or an agent rewrites
+the file, the comment moves to the nearest place where its code still appears. When that code is
+gone, the comment is marked **code changed**, and the export quotes the original code.
+
 ### Submit with a custom command
 
 By default, **Submit Review** pastes the review into the active terminal tab. To run a command

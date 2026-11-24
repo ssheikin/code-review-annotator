@@ -109,4 +109,15 @@ class MarkdownExporterTest {
         assertTrue(result.contains("   line 15\n   …\n"))
         assertFalse(result.contains("line 16"))
     }
+
+    @Test
+    fun `export flags outdated comment`() {
+        val session = ReviewSession(
+            comments = mutableListOf(
+                ReviewComment(scope = CommentScope.LINE, text = "Fix", filePath = "a.go", lineStart = 3, outdated = true)
+            )
+        )
+        val result = MarkdownExporter.export(session)
+        assertTrue(result.contains("`a.go:3` (code changed since this comment) - Fix"))
+    }
 }

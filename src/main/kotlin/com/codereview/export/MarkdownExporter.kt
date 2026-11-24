@@ -40,7 +40,8 @@ object MarkdownExporter {
                     CommentScope.FILE -> "`${comment.filePath}`"
                     CommentScope.REVIEW -> "`Review Comment`"
                 }
-                sb.appendLine("${index + 1}. **[${comment.type.name}]** $location - ${comment.text}")
+                val outdatedNote = if (comment.outdated) " (code changed since this comment)" else ""
+                sb.appendLine("${index + 1}. **[${comment.type.name}]** $location$outdatedNote - ${comment.text}")
                 snippetOf(comment)?.takeIf { it.isNotEmpty() }?.let { appendSnippet(sb, it) }
             }
         }

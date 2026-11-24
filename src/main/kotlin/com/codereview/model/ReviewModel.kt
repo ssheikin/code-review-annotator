@@ -13,7 +13,10 @@ data class ReviewComment(
     val filePath: String? = null,
     val lineStart: Int? = null,
     val lineEnd: Int? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    // The commented lines as they were when the comment was written.
+    val anchorText: String? = null,
+    val outdated: Boolean = false
 )
 
 data class ReviewSession(

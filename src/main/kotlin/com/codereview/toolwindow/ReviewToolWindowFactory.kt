@@ -460,7 +460,7 @@ private class CommentCellPanel : JPanel() {
                 } else {
                     "L${comment.lineStart}"
                 }
-                range
+                if (comment.outdated) "$range · code changed" else range
             }
             CommentScope.FILE -> "Whole file"
             CommentScope.REVIEW -> "Review"

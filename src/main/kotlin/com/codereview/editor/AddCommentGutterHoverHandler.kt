@@ -94,7 +94,8 @@ private class AddCommentGutterIconRenderer(
                         text = text,
                         filePath = relativePath,
                         lineStart = line1Based,
-                        lineEnd = null
+                        lineEnd = null,
+                        anchorText = CommentAnchors.capture(document, line1Based, line1Based)
                     )
                     ReviewSessionService.getInstance(project).addComment(comment)
                     InlineCommentManager.addInlineComment(project, editor, comment)

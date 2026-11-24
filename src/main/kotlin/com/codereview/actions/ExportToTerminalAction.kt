@@ -1,6 +1,7 @@
 package com.codereview.actions
 
 import com.codereview.editor.InlineCommentManager
+import com.codereview.editor.CommentAnchors
 import com.codereview.export.MarkdownExporter
 import com.codereview.export.ProjectSnippets
 import com.codereview.service.ReviewSessionService
@@ -37,6 +38,7 @@ class ExportToTerminalAction : AnAction(
         }
 
         val commentCount = session.comments.count { it.scope != com.codereview.model.CommentScope.REVIEW }
+        CommentAnchors.reanchorAll(project)
         val markdown = MarkdownExporter.export(session, ProjectSnippets.reader(project))
 
         val command = CodeReviewSettings.getInstance().state.submitCommand.trim()

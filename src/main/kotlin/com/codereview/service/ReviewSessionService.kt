@@ -33,6 +33,8 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         @Tag("lineStart") var lineStart: Int? = null
         @Tag("lineEnd") var lineEnd: Int? = null
         @Tag("createdAt") var createdAt: Long = 0L
+        @Tag("anchorText") var anchorText: String? = null
+        @Tag("outdated") var outdated: Boolean = false
     }
 
     class State {
@@ -119,6 +121,14 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
             return session.comments[index]
         }
         return null
+    }
+
+    // Not recorded: the code moved, the reviewer did not change anything.
+    fun relocate(commentId: String, lineStart: Int, lineEnd: Int?, outdated: Boolean) {
+        val index = session.comments.indexOfFirst { it.id == commentId }
+        if (index < 0) return
+        session.comments[index] = session.comments[index].copy(lineStart = lineStart, lineEnd = lineEnd, outdated = outdated)
+        fireCommentsChanged()
     }
 
     fun updateSummary(text: String) {
@@ -233,6 +243,8 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
             s.lineStart = lineStart
             s.lineEnd = lineEnd
             s.createdAt = createdAt
+            s.anchorText = anchorText
+            s.outdated = outdated
         }
 
         private fun CommentState.toComment() = ReviewComment(
@@ -243,7 +255,9 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
             filePath = filePath,
             lineStart = lineStart,
             lineEnd = lineEnd,
-            createdAt = createdAt
+            createdAt = createdAt,
+            anchorText = anchorText,
+            outdated = outdated
         )
 
         fun getInstance(project: Project): ReviewSessionService =

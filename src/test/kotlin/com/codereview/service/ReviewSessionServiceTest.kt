@@ -263,4 +263,14 @@ class ReviewSessionServiceTest {
 
         assertEquals("local", service.reviewHistory.single().session.comments.single().id)
     }
+
+    @Test
+    fun `relocate moves comment without an undo step`() {
+        service.addComment(ReviewComment(id = "c1", scope = CommentScope.LINE, text = "x", filePath = "a.go", lineStart = 3))
+        service.relocate("c1", 7, null, outdated = false)
+
+        assertEquals(7, service.currentSession.comments.single().lineStart)
+        service.undo()
+        assertTrue(service.currentSession.comments.isEmpty())
+    }
 }

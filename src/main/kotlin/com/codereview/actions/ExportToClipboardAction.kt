@@ -1,5 +1,6 @@
 package com.codereview.actions
 
+import com.codereview.editor.CommentAnchors
 import com.codereview.export.MarkdownExporter
 import com.codereview.export.ProjectSnippets
 import com.codereview.service.ReviewSessionService
@@ -29,6 +30,7 @@ class ExportToClipboardAction : AnAction(
         }
 
         val commentCount = session.comments.count { it.scope != com.codereview.model.CommentScope.REVIEW }
+        CommentAnchors.reanchorAll(project)
         val markdown = MarkdownExporter.export(session, ProjectSnippets.reader(project))
         CopyPasteManager.getInstance().setContents(StringSelection(markdown))
 

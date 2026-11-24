@@ -1,5 +1,6 @@
 package com.codereview.actions
 
+import com.codereview.editor.CommentAnchors
 import com.codereview.editor.InlineCommentManager
 import com.codereview.model.CommentScope
 import com.codereview.model.ReviewComment
@@ -41,7 +42,8 @@ class AddLineCommentFromEditorAction : AnAction(
                     text = text,
                     filePath = relativePath,
                     lineStart = lineStart,
-                    lineEnd = if (lineEnd != lineStart) lineEnd else null
+                    lineEnd = if (lineEnd != lineStart) lineEnd else null,
+                    anchorText = CommentAnchors.capture(editor.document, lineStart, lineEnd)
                 )
                 ReviewSessionService.getInstance(project).addComment(comment)
                 InlineCommentManager.addInlineComment(project, editor, comment)
