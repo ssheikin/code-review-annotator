@@ -53,40 +53,8 @@ private class ReviewEditorFactoryListenerImpl : EditorFactoryListener {
             log.warn("[CodeReview] editorCreated: SKIP — editor.project is null, editor=${System.identityHashCode(editor)}, docClass=${editor.document::class.java.name}")
             return
         }
-        val projectBasePath = project.basePath ?: return
         val session = ReviewSessionService.getInstance(project).currentSession
-
-        val vfile = FileDocumentManager.getInstance().getFile(editor.document)
-        log.warn("[CodeReview] editorCreated ENTER: editor=${System.identityHashCode(editor)}, document=${System.identityHashCode(editor.document)}, docClass=${editor.document::class.java.name}, vfile=${vfile?.path}, vfileClass=${vfile?.javaClass?.name}, isDisposed=${editor.isDisposed}, totalComments=${session.comments.size}")
-
-        // Reverse lookup: find which comment filePath matches this editor's document
-        val commentPaths = session.comments
-            .mapNotNull { it.filePath }
-            .distinct()
-
-        var matchedPath: String? = null
-        for (relativePath in commentPaths) {
-            val fullPath = "$projectBasePath/$relativePath"
-            val vf = LocalFileSystem.getInstance().findFileByPath(fullPath) ?: continue
-            val doc = FileDocumentManager.getInstance().getDocument(vf) ?: continue
-            log.warn("[CodeReview] editorCreated path check: relativePath=$relativePath, docFromVf=${System.identityHashCode(doc)}, editorDoc=${System.identityHashCode(editor.document)}, same=${doc === editor.document}")
-            if (doc === editor.document) {
-                matchedPath = relativePath
-                break
-            }
-        }
-
-        // Fallback for regular editors (also handles files with no comments yet)
-        if (matchedPath == null) {
-            val file = FileDocumentManager.getInstance().getFile(editor.document)
-            if (file == null) {
-                log.warn("[CodeReview] editorCreated: SKIP — FileDocumentManager.getFile() returned null for document ${System.identityHashCode(editor.document)}")
-                return
-            }
-            matchedPath = file.path.let {
-                if (it.startsWith(projectBasePath)) it.removePrefix(projectBasePath).removePrefix("/") else it
-            }
-        }
+        val matchedPath = resolveCommentPath(project, editor) ?: return
 
         log.warn("[CodeReview] editorCreated: matchedPath=$matchedPath, editor=${System.identityHashCode(editor)}, commentsForPath=${session.comments.count { it.filePath == matchedPath }}")
         InlineCommentManager.reapplyInlineComments(project, editor, matchedPath)
@@ -105,5 +73,37 @@ private class ReviewEditorFactoryListenerImpl : EditorFactoryListener {
             editor.addEditorMouseMotionListener(InlineCommentHoverHandler())
             editor.putUserData(BUTTON_HOVER_HANDLER_INSTALLED, true)
         }
+    }
+}
+
+private val resolveLog = Logger.getInstance("com.codereview.editor.ResolveCommentPath")
+
+internal fun resolveCommentPath(project: Project, editor: Editor): String? {
+    val projectBasePath = project.basePath ?: return null
+    val session = ReviewSessionService.getInstance(project).currentSession
+
+    val vfile = FileDocumentManager.getInstance().getFile(editor.document)
+    resolveLog.warn("[CodeReview] resolveCommentPath: editor=${System.identityHashCode(editor)}, document=${System.identityHashCode(editor.document)}, docClass=${editor.document::class.java.name}, vfile=${vfile?.path}, vfileClass=${vfile?.javaClass?.name}, isDisposed=${editor.isDisposed}, totalComments=${session.comments.size}")
+
+    // Reverse lookup: find which comment filePath matches this editor's document
+    val commentPaths = session.comments
+        .mapNotNull { it.filePath }
+        .distinct()
+
+    for (relativePath in commentPaths) {
+        val fullPath = "$projectBasePath/$relativePath"
+        val vf = LocalFileSystem.getInstance().findFileByPath(fullPath) ?: continue
+        val doc = FileDocumentManager.getInstance().getDocument(vf) ?: continue
+        resolveLog.warn("[CodeReview] resolveCommentPath check: relativePath=$relativePath, docFromVf=${System.identityHashCode(doc)}, editorDoc=${System.identityHashCode(editor.document)}, same=${doc === editor.document}")
+        if (doc === editor.document) return relativePath
+    }
+
+    // Fallback for regular editors (also handles files with no comments yet)
+    val file = vfile ?: run {
+        resolveLog.warn("[CodeReview] resolveCommentPath: SKIP — FileDocumentManager.getFile() returned null for document ${System.identityHashCode(editor.document)}")
+        return null
+    }
+    return file.path.let {
+        if (it.startsWith(projectBasePath)) it.removePrefix(projectBasePath).removePrefix("/") else it
     }
 }
