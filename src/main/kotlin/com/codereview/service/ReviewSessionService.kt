@@ -137,6 +137,22 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         clearSession()
     }
 
+    // Imported history is merged so that moving reviews between machines
+    // or projects never drops entries already here.
+    fun importState(imported: State) {
+        val other = ReviewSessionService(null).also { it.loadState(imported) }
+        val known = history.map { it.session.id }.toSet()
+        history.addAll(other.history.filter { it.session.id !in known })
+        history.sortByDescending { it.archivedAt }
+        while (history.size > MAX_HISTORY) history.removeAt(history.lastIndex)
+
+        val incoming = other.currentSession
+        if (incoming.comments.isNotEmpty() || incoming.summary.isNotEmpty()) {
+            recorded { session = incoming }
+        }
+        fireCommentsChanged()
+    }
+
     fun restoreFromHistory(entry: ArchivedReview) {
         recorded { session = entry.session.copy(comments = entry.session.comments.toMutableList()) }
         fireCommentsChanged()

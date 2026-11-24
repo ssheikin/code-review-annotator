@@ -83,6 +83,10 @@ Click **Clear Session** in the tool window toolbar. This removes all comments an
 **Submit Review** and **Clear Session** move the review to the history. **Review History** in the
 toolbar lists the last 50 reviews; pick one to restore it.
 
+**Export Reviews to File** saves the current review and the history to an XML file.
+**Import Reviews from File** loads such a file: its review replaces the current one, and its
+history merges into the local history.
+
 **Undo** and **Redo** in the toolbar revert any comment change, including a clear or a submit.
 With the comment list focused, the IDE undo and redo shortcuts work too.
 

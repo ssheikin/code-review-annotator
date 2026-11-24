@@ -218,4 +218,25 @@ class ReviewSessionServiceTest {
 
         assertEquals("c1", newService.reviewHistory.single().session.comments.single().id)
     }
+
+    @Test
+    fun `importState replaces current session and merges history`() {
+        val source = ReviewSessionService(null)
+        source.addComment(ReviewComment(id = "old", scope = CommentScope.FILE, text = "Old", filePath = "a.go"))
+        source.archiveAndClear()
+        source.addComment(ReviewComment(id = "new", scope = CommentScope.FILE, text = "New", filePath = "a.go"))
+
+        service.addComment(ReviewComment(id = "local", scope = CommentScope.FILE, text = "Local", filePath = "b.go"))
+        service.archiveAndClear()
+
+        service.importState(source.state)
+        service.importState(source.state)
+
+        assertEquals("new", service.currentSession.comments.single().id)
+        assertEquals(
+            setOf("old", "local"),
+            service.reviewHistory.map { it.session.comments.single().id }.toSet()
+        )
+        assertEquals(2, service.reviewHistory.size)
+    }
 }

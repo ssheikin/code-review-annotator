@@ -70,6 +70,18 @@
                 description="Restore a submitted or cleared review">
         </action>
 
+        <action id="CodeReview.ExportToFile"
+                class="com.codereview.actions.ExportReviewsToFileAction"
+                text="Export Reviews to File..."
+                description="Save the current review and the review history to a file">
+        </action>
+
+        <action id="CodeReview.ImportFromFile"
+                class="com.codereview.actions.ImportReviewsFromFileAction"
+                text="Import Reviews from File..."
+                description="Load a review and its history from an exported file">
+        </action>
+
         <action id="CodeReview.Undo"
                 class="com.codereview.actions.UndoReviewChangeAction"
                 text="Undo Review Change"
@@ -109,6 +121,8 @@
             <reference ref="CodeReview.Undo"/>
             <reference ref="CodeReview.Redo"/>
             <reference ref="CodeReview.ShowHistory"/>
+            <reference ref="CodeReview.ExportToFile"/>
+            <reference ref="CodeReview.ImportFromFile"/>
         </group>
     </actions>
 </idea-plugin>
