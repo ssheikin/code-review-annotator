@@ -2,13 +2,13 @@ package com.codereview.model
 
 import java.util.UUID
 
-enum class CommentType { ISSUE, SUGGESTION, NOTE }
+enum class CommentType { MUST_DO, SUGGESTION, QUESTION }
 enum class CommentScope { REVIEW, FILE, LINE }
 
 data class ReviewComment(
     val id: String = UUID.randomUUID().toString(),
     val scope: CommentScope = CommentScope.REVIEW,
-    val type: CommentType = CommentType.NOTE,
+    val type: CommentType = CommentType.QUESTION,
     val text: String = "",
     val filePath: String? = null,
     val lineStart: Int? = null,

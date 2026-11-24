@@ -26,7 +26,7 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
     class CommentState {
         @Tag("id") var id: String = ""
         @Tag("scope") var scope: String = "REVIEW"
-        @Tag("type") var type: String = "NOTE"
+        @Tag("type") var type: String = "QUESTION"
         @Tag("text") var text: String = ""
         @Tag("filePath") var filePath: String? = null
         @Tag("lineStart") var lineStart: Int? = null

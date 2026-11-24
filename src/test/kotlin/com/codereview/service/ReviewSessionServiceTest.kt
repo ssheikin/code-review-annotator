@@ -44,13 +44,13 @@ class ReviewSessionServiceTest {
 
     @Test
     fun `updateComment updates existing comment`() {
-        val comment = ReviewComment(id = "c1", type = CommentType.NOTE, text = "Original")
+        val comment = ReviewComment(id = "c1", type = CommentType.QUESTION, text = "Original")
         service.addComment(comment)
 
-        service.updateComment("c1") { it.copy(type = CommentType.ISSUE, text = "Updated") }
+        service.updateComment("c1") { it.copy(type = CommentType.MUST_DO, text = "Updated") }
 
         val updated = service.currentSession.comments[0]
-        assertEquals(CommentType.ISSUE, updated.type)
+        assertEquals(CommentType.MUST_DO, updated.type)
         assertEquals("Updated", updated.text)
     }
 

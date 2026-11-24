@@ -23,11 +23,11 @@ class MarkdownExporterTest {
     fun `export file comment`() {
         val session = ReviewSession(
             comments = mutableListOf(
-                ReviewComment(scope = CommentScope.FILE, type = CommentType.ISSUE, text = "Missing tests", filePath = "src/auth.go")
+                ReviewComment(scope = CommentScope.FILE, type = CommentType.MUST_DO, text = "Missing tests", filePath = "src/auth.go")
             )
         )
         val result = MarkdownExporter.export(session)
-        assertTrue(result.contains("1. **[ISSUE]** `src/auth.go` - Missing tests"))
+        assertTrue(result.contains("1. **[MUST_DO]** `src/auth.go` - Missing tests"))
     }
 
     @Test
@@ -50,23 +50,23 @@ class MarkdownExporterTest {
         val session = ReviewSession(
             comments = mutableListOf(
                 ReviewComment(
-                    scope = CommentScope.LINE, type = CommentType.ISSUE,
+                    scope = CommentScope.LINE, type = CommentType.MUST_DO,
                     text = "Race condition", filePath = "src/handler.go",
                     lineStart = 10, lineEnd = 15
                 )
             )
         )
         val result = MarkdownExporter.export(session)
-        assertTrue(result.contains("1. **[ISSUE]** `src/handler.go:10-15` - Race condition"))
+        assertTrue(result.contains("1. **[MUST_DO]** `src/handler.go:10-15` - Race condition"))
     }
 
     @Test
     fun `export sorts by scope then file then line`() {
         val session = ReviewSession(
             comments = mutableListOf(
-                ReviewComment(scope = CommentScope.LINE, type = CommentType.ISSUE, text = "Bug", filePath = "z.go", lineStart = 5),
+                ReviewComment(scope = CommentScope.LINE, type = CommentType.MUST_DO, text = "Bug", filePath = "z.go", lineStart = 5),
                 ReviewComment(scope = CommentScope.FILE, type = CommentType.SUGGESTION, text = "Refactor", filePath = "a.go"),
-                ReviewComment(scope = CommentScope.LINE, type = CommentType.NOTE, text = "Nice", filePath = "a.go", lineStart = 1)
+                ReviewComment(scope = CommentScope.LINE, type = CommentType.QUESTION, text = "Nice", filePath = "a.go", lineStart = 1)
             )
         )
         val result = MarkdownExporter.export(session)

@@ -48,9 +48,9 @@ There are three scopes for comments:
 
 Each comment has a type:
 
-- **ISSUE**: a problem that needs to be fixed
+- **MUST_DO**: a problem that needs to be fixed
 - **SUGGESTION**: an improvement to consider
-- **NOTE**: an observation
+- **QUESTION**: something to clarify
 
 ### 2. Browse comments
 
@@ -68,8 +68,8 @@ This copies all comments as numbered markdown:
 I reviewed your code and have the following comments. Please address them.
 
 1. **[SUGGESTION]** `src/auth.go:42` - Consider adding unit tests
-2. **[ISSUE]** `src/handler.go:10-15` - Race condition on shared map
-3. **[NOTE]** `Review Comment` - Overall structure looks clean
+2. **[MUST_DO]** `src/handler.go:10-15` - Race condition on shared map
+3. **[QUESTION]** `src/handler.go:20` - Why not reuse the existing pool?
 ```
 
 ### 4. Clear session

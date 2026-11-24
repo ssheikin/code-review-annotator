@@ -9,7 +9,7 @@ class ReviewModelTest {
     fun `ReviewComment has correct defaults`() {
         val comment = ReviewComment(text = "Test comment")
         assertEquals(CommentScope.REVIEW, comment.scope)
-        assertEquals(CommentType.NOTE, comment.type)
+        assertEquals(CommentType.QUESTION, comment.type)
         assertEquals("Test comment", comment.text)
         assertNull(comment.filePath)
         assertNull(comment.lineStart)
@@ -23,7 +23,7 @@ class ReviewModelTest {
         val comment = ReviewComment(
             id = "test-id",
             scope = CommentScope.LINE,
-            type = CommentType.ISSUE,
+            type = CommentType.MUST_DO,
             text = "Bug here",
             filePath = "src/main.go",
             lineStart = 10,
@@ -32,7 +32,7 @@ class ReviewModelTest {
         )
         assertEquals("test-id", comment.id)
         assertEquals(CommentScope.LINE, comment.scope)
-        assertEquals(CommentType.ISSUE, comment.type)
+        assertEquals(CommentType.MUST_DO, comment.type)
         assertEquals("Bug here", comment.text)
         assertEquals("src/main.go", comment.filePath)
         assertEquals(10, comment.lineStart)

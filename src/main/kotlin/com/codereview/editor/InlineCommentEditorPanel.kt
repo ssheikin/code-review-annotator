@@ -8,7 +8,7 @@ import java.awt.*
 import javax.swing.*
 
 class InlineCommentEditorPanel(
-    initialType: CommentType = CommentType.ISSUE,
+    initialType: CommentType = CommentType.MUST_DO,
     initialText: String = "",
     private val onSave: (CommentType, String) -> Unit,
     private val onCancel: () -> Unit
@@ -106,9 +106,9 @@ class InlineCommentEditorPanel(
 
     companion object {
         fun accentColorFor(type: CommentType): Color = when (type) {
-            CommentType.ISSUE -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
+            CommentType.MUST_DO -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
             CommentType.SUGGESTION -> JBColor(Color(50, 100, 220), Color(80, 130, 255))
-            CommentType.NOTE -> JBColor(Color(200, 160, 0), Color(220, 180, 50))
+            CommentType.QUESTION -> JBColor(Color(200, 160, 0), Color(220, 180, 50))
         }
     }
 }

@@ -441,15 +441,15 @@ private class CommentCellPanel : JPanel() {
         private const val GAP = 4
 
         private fun accentColor(type: CommentType): Color = when (type) {
-            CommentType.ISSUE -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
+            CommentType.MUST_DO -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
             CommentType.SUGGESTION -> JBColor(Color(50, 100, 220), Color(80, 130, 255))
-            CommentType.NOTE -> JBColor(Color(200, 160, 0), Color(220, 180, 50))
+            CommentType.QUESTION -> JBColor(Color(200, 160, 0), Color(220, 180, 50))
         }
 
         private fun bgColor(type: CommentType): Color = when (type) {
-            CommentType.ISSUE -> JBColor(Color(255, 245, 245), Color(45, 25, 25))
+            CommentType.MUST_DO -> JBColor(Color(255, 245, 245), Color(45, 25, 25))
             CommentType.SUGGESTION -> JBColor(Color(245, 247, 255), Color(25, 28, 45))
-            CommentType.NOTE -> JBColor(Color(255, 252, 240), Color(42, 40, 25))
+            CommentType.QUESTION -> JBColor(Color(255, 252, 240), Color(42, 40, 25))
         }
 
         private fun formatLocation(comment: ReviewComment): String = when (comment.scope) {

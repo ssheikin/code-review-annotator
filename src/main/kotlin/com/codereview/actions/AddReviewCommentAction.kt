@@ -40,7 +40,7 @@ class AddReviewCommentAction : AnAction("Add Review Comment", "Add a review-wide
 class CommentDialog(
     project: Project,
     title: String,
-    initialType: CommentType = CommentType.NOTE,
+    initialType: CommentType = CommentType.QUESTION,
     initialText: String = "",
     private val filePath: String? = null,
     private val lineInfo: String? = null

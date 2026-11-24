@@ -107,7 +107,7 @@ object InlineCommentManager {
         val lineHeight = editor.lineHeight
 
         val panel = InlineCommentEditorPanel(
-            initialType = existingComment?.type ?: CommentType.ISSUE,
+            initialType = existingComment?.type ?: CommentType.MUST_DO,
             initialText = existingComment?.text ?: "",
             onSave = { type, text ->
                 currentEditorPopup?.cancel()

@@ -21,16 +21,16 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
 
     private val accentColor: Color
         get() = when (comment.type) {
-            CommentType.ISSUE -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
+            CommentType.MUST_DO -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
             CommentType.SUGGESTION -> JBColor(Color(50, 100, 220), Color(80, 130, 255))
-            CommentType.NOTE -> JBColor(Color(200, 160, 0), Color(220, 180, 50))
+            CommentType.QUESTION -> JBColor(Color(200, 160, 0), Color(220, 180, 50))
         }
 
     private val backgroundColor: Color
         get() = when (comment.type) {
-            CommentType.ISSUE -> JBColor(Color(255, 235, 235), Color(60, 30, 30))
+            CommentType.MUST_DO -> JBColor(Color(255, 235, 235), Color(60, 30, 30))
             CommentType.SUGGESTION -> JBColor(Color(235, 240, 255), Color(30, 35, 60))
-            CommentType.NOTE -> JBColor(Color(255, 250, 230), Color(55, 50, 30))
+            CommentType.QUESTION -> JBColor(Color(255, 250, 230), Color(55, 50, 30))
         }
 
     companion object {
