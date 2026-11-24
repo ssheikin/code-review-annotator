@@ -3,12 +3,15 @@ package com.codereview.actions
 import com.codereview.editor.InlineCommentManager
 import com.codereview.export.MarkdownExporter
 import com.codereview.service.ReviewSessionService
+import com.codereview.settings.CodeReviewSettings
 import com.codereview.toolwindow.ReviewToolWindowFactory
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.terminal.JBTerminalWidget
 import com.intellij.util.ui.UIUtil
@@ -17,7 +20,7 @@ import org.jetbrains.plugins.terminal.TerminalToolWindowManager
 
 class ExportToTerminalAction : AnAction(
     "Submit Review",
-    "Submit all review comments to the active terminal session",
+    "Submit all review comments to the terminal",
     AllIcons.Actions.MenuPaste
 ) {
     override fun actionPerformed(e: AnActionEvent) {
@@ -29,6 +32,21 @@ class ExportToTerminalAction : AnAction(
                 .getNotificationGroup("CodeReviewAnnotator")
                 .createNotification("No review content to submit.", NotificationType.WARNING)
                 .notify(project)
+            return
+        }
+
+        val commentCount = session.comments.count { it.scope != com.codereview.model.CommentScope.REVIEW }
+        val markdown = MarkdownExporter.export(session)
+
+        val command = CodeReviewSettings.getInstance().state.submitCommand.trim()
+        if (command.isNotEmpty()) {
+            // A file avoids escaping multi-line markdown for the shell.
+            val reviewFile = FileUtil.createTempFile("code-review-", ".md", true)
+            reviewFile.writeText(markdown)
+            TerminalToolWindowManager.getInstance(project)
+                .createShellWidget(project.basePath, "Code Review", true, true)
+                .sendCommandToExecute(command.replace("{file}", shellQuote(reviewFile.path)))
+            finishSubmit(project, commentCount)
             return
         }
 
@@ -58,9 +76,6 @@ class ExportToTerminalAction : AnAction(
             return
         }
 
-        val commentCount = session.comments.count { it.scope != com.codereview.model.CommentScope.REVIEW }
-        val markdown = MarkdownExporter.export(session)
-
         if (newStyleWidget != null) {
             newStyleWidget.sendCommandToExecute(markdown)
         } else {
@@ -69,7 +84,12 @@ class ExportToTerminalAction : AnAction(
         }
 
         toolWindow?.activate(null)
+        finishSubmit(project, commentCount)
+    }
 
+    private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+    private fun finishSubmit(project: Project, commentCount: Int) {
         InlineCommentManager.clearAllInlineComments(project)
         ReviewSessionService.getInstance(project).archiveAndClear()
         ReviewToolWindowFactory.refreshPanel(project)

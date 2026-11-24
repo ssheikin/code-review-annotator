@@ -76,6 +76,16 @@ I reviewed your code and have the following comments. Please address them.
 3. **[QUESTION]** `src/handler.go:20` - Why not reuse the existing pool?
 ```
 
+### Submit with a custom command
+
+By default, **Submit Review** pastes the review into the active terminal tab. To run a command
+in a new terminal tab instead, set **Settings → Tools → Code Review Annotator → Submit command**.
+`{file}` expands to the path of a file that holds the review markdown:
+
+```sh
+claude "$(cat {file})"
+```
+
 ### 4. Clear session
 
 Click **Clear Session** in the tool window toolbar. This removes all comments and gutter icons.

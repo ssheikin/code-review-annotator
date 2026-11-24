@@ -23,6 +23,11 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.codereview.service.ReviewSessionService"/>
 
+        <applicationConfigurable parentId="tools"
+                                 instance="com.codereview.settings.CodeReviewConfigurable"
+                                 id="com.codereview.settings"
+                                 displayName="Code Review Annotator"/>
+
         <toolWindow id="Code Review"
                     anchor="bottom"
                     factoryClass="com.codereview.toolwindow.ReviewToolWindowFactory"
@@ -60,7 +65,7 @@
         <action id="CodeReview.ExportToTerminal"
                 class="com.codereview.actions.ExportToTerminalAction"
                 text="Submit Review"
-                description="Submit all review comments to the active terminal session">
+                description="Submit all review comments to the terminal">
             <add-to-group group-id="TerminalToolwindowActionGroup" anchor="last"/>
         </action>
 
