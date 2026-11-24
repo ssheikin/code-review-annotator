@@ -10,16 +10,17 @@ import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.InlayProperties
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.popup.JBPopup
-import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.ui.awt.RelativePoint
-import java.awt.Point
+import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.impl.EditorEmbeddedComponentManager
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.wm.IdeFocusManager
+import java.awt.Dimension
 
 object InlineCommentManager {
 
     private val log = Logger.getInstance(InlineCommentManager::class.java)
     private val inlays = mutableMapOf<String, Inlay<InlineCommentRenderer>>()
-    private var currentEditorPopup: JBPopup? = null
     // Ids whose collapse state differs from the default: resolved comments start collapsed.
     private val collapsedIds = mutableSetOf<String>()
 
@@ -111,7 +112,7 @@ object InlineCommentManager {
     }
 
     /**
-     * Shows an inline editor popup below the given line for creating or editing a comment.
+     * Shows a comment editor embedded below the given line for creating or editing a comment.
      * @param line1Based the 1-based line number to anchor below
      * @param existingComment if non-null, pre-fills the editor with this comment's data
      * @param onSave callback receiving (type, text) when the user saves
@@ -123,46 +124,60 @@ object InlineCommentManager {
         onSave: (CommentType, String) -> Unit,
         onCancel: (() -> Unit)? = null
     ) {
-        // Dismiss any existing editor popup
-        currentEditorPopup?.cancel()
-        currentEditorPopup = null
+        closeCommentEditor(cancelled = true)
+        val editorEx = editor as? EditorEx ?: return
+        val project = editor.project ?: return
 
         val document = editor.document
         val line0 = (line1Based - 1).coerceIn(0, document.lineCount - 1)
         val offset = document.getLineEndOffset(line0)
-        val visualPoint = editor.offsetToXY(offset)
-        val lineHeight = editor.lineHeight
 
         val panel = InlineCommentEditorPanel(
+            project = project,
             initialType = existingComment?.type ?: CommentType.MUST_DO,
             initialText = existingComment?.text ?: "",
             onSave = { type, text ->
-                currentEditorPopup?.cancel()
-                currentEditorPopup = null
+                closeCommentEditor(cancelled = false)
                 onSave(type, text)
             },
-            onCancel = {
-                currentEditorPopup?.cancel()
-                currentEditorPopup = null
-                onCancel?.invoke()
-            }
+            onCancel = { closeCommentEditor(cancelled = true) }
         )
+        panel.fixedWidth = (editor.scrollingModel.visibleArea.width - EDITOR_MARGIN).coerceAtLeast(400)
 
-        val popup = JBPopupFactory.getInstance()
-            .createComponentPopupBuilder(panel, panel.textArea)
-            .setRequestFocus(true)
-            .setFocusable(true)
-            .setMovable(false)
-            .setResizable(false)
-            .setCancelOnClickOutside(true)
-            .setCancelOnOtherWindowOpen(true)
-            .setCancelKeyEnabled(false) // We handle ESC in the panel
-            .createPopup()
+        val inlay = EditorEmbeddedComponentManager.getInstance().addComponent(
+            editorEx,
+            panel,
+            EditorEmbeddedComponentManager.Properties(
+                EditorEmbeddedComponentManager.ResizePolicy.none(), null, true, false, 0, offset
+            )
+        ) ?: return
+        currentCommentEditor = OpenCommentEditor(inlay, editor, onCancel)
 
-        currentEditorPopup = popup
+        panel.onContentResized = {
+            if (inlay.isValid) {
+                panel.size = Dimension(panel.fixedWidth, panel.preferredSize.height)
+                panel.revalidate()
+                inlay.update()
+            }
+        }
 
-        // Position just below the target line
-        val showPoint = Point(visualPoint.x, visualPoint.y + lineHeight)
-        popup.show(RelativePoint(editor.contentComponent, showPoint))
+        editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(offset), ScrollType.MAKE_VISIBLE)
+        IdeFocusManager.getInstance(project).requestFocus(panel.textField, true)
     }
+
+    private class OpenCommentEditor(val inlay: Inlay<*>, val editor: Editor, val onCancel: (() -> Unit)?)
+
+    private var currentCommentEditor: OpenCommentEditor? = null
+
+    // Cancelling also runs when another editor replaces this one, so an edited
+    // comment gets its display inlay back instead of vanishing.
+    private fun closeCommentEditor(cancelled: Boolean) {
+        val open = currentCommentEditor ?: return
+        currentCommentEditor = null
+        Disposer.dispose(open.inlay)
+        if (cancelled) open.onCancel?.invoke()
+        open.editor.project?.let { IdeFocusManager.getInstance(it).requestFocus(open.editor.contentComponent, true) }
+    }
+
+    private const val EDITOR_MARGIN = 40
 }
