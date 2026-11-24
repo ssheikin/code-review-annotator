@@ -71,7 +71,7 @@ class ExportToTerminalAction : AnAction(
         toolWindow?.activate(null)
 
         InlineCommentManager.clearAllInlineComments(project)
-        ReviewSessionService.getInstance(project).clearSession()
+        ReviewSessionService.getInstance(project).archiveAndClear()
         ReviewToolWindowFactory.refreshPanel(project)
 
         NotificationGroupManager.getInstance()

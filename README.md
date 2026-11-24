@@ -80,6 +80,9 @@ I reviewed your code and have the following comments. Please address them.
 
 Click **Clear Session** in the tool window toolbar. This removes all comments and gutter icons.
 
+**Submit Review** and **Clear Session** move the review to the history. **Review History** in the
+toolbar lists the last 50 reviews; pick one to restore it.
+
 **Undo** and **Redo** in the toolbar revert any comment change, including a clear or a submit.
 With the comment list focused, the IDE undo and redo shortcuts work too.
 

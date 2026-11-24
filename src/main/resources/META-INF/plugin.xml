@@ -64,6 +64,12 @@
             <add-to-group group-id="TerminalToolwindowActionGroup" anchor="last"/>
         </action>
 
+        <action id="CodeReview.ShowHistory"
+                class="com.codereview.actions.ShowReviewHistoryAction"
+                text="Review History"
+                description="Restore a submitted or cleared review">
+        </action>
+
         <action id="CodeReview.Undo"
                 class="com.codereview.actions.UndoReviewChangeAction"
                 text="Undo Review Change"
@@ -102,6 +108,7 @@
             <separator/>
             <reference ref="CodeReview.Undo"/>
             <reference ref="CodeReview.Redo"/>
+            <reference ref="CodeReview.ShowHistory"/>
         </group>
     </actions>
 </idea-plugin>

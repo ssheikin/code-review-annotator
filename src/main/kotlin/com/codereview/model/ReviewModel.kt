@@ -23,3 +23,8 @@ data class ReviewSession(
     val createdAt: Long = System.currentTimeMillis(),
     val baseBranch: String? = null
 )
+
+data class ArchivedReview(
+    val session: ReviewSession,
+    val archivedAt: Long = System.currentTimeMillis()
+)

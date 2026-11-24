@@ -40,6 +40,15 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         @Tag("baseBranch") var baseBranch: String? = null
         @Tag("summary") var summary: String = ""
         @XCollection(elementName = "comment") var comments: MutableList<CommentState> = mutableListOf()
+        @XCollection(elementName = "archivedReview") var history: MutableList<ArchivedState> = mutableListOf()
+    }
+
+    class ArchivedState {
+        @Tag("sessionId") var sessionId: String = ""
+        @Tag("sessionCreatedAt") var sessionCreatedAt: Long = 0L
+        @Tag("archivedAt") var archivedAt: Long = 0L
+        @Tag("summary") var summary: String = ""
+        @XCollection(elementName = "comment") var comments: MutableList<CommentState> = mutableListOf()
     }
 
     private data class Snapshot(val comments: List<ReviewComment>, val summary: String)
@@ -48,8 +57,10 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
     private var session: ReviewSession = ReviewSession()
     private val undoStack = ArrayDeque<Change>()
     private val redoStack = ArrayDeque<Change>()
+    private val history = mutableListOf<ArchivedReview>()
 
     val currentSession: ReviewSession get() = session
+    val reviewHistory: List<ArchivedReview> get() = history
     val canUndo: Boolean get() = undoStack.isNotEmpty()
     val canRedo: Boolean get() = redoStack.isNotEmpty()
 
@@ -118,6 +129,19 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         fireCommentsChanged()
     }
 
+    fun archiveAndClear() {
+        if (session.comments.isNotEmpty() || session.summary.isNotEmpty()) {
+            history.add(0, ArchivedReview(session.copy(comments = session.comments.toMutableList())))
+            if (history.size > MAX_HISTORY) history.removeAt(history.lastIndex)
+        }
+        clearSession()
+    }
+
+    fun restoreFromHistory(entry: ArchivedReview) {
+        recorded { session = entry.session.copy(comments = entry.session.comments.toMutableList()) }
+        fireCommentsChanged()
+    }
+
     override fun getState(): State {
         val state = State()
         state.sessionId = session.id
@@ -125,6 +149,15 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         state.baseBranch = session.baseBranch
         state.summary = session.summary
         state.comments = session.comments.map { it.toState() }.toMutableList()
+        state.history = history.map { entry ->
+            ArchivedState().apply {
+                sessionId = entry.session.id
+                sessionCreatedAt = entry.session.createdAt
+                archivedAt = entry.archivedAt
+                summary = entry.session.summary
+                comments = entry.session.comments.map { it.toState() }.toMutableList()
+            }
+        }.toMutableList()
         return state
     }
 
@@ -144,10 +177,23 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
             createdAt = if (state.sessionCreatedAt > 0) state.sessionCreatedAt else System.currentTimeMillis(),
             baseBranch = state.baseBranch
         )
+        history.clear()
+        state.history.mapTo(history) { a ->
+            ArchivedReview(
+                session = ReviewSession(
+                    id = a.sessionId,
+                    summary = a.summary,
+                    comments = a.comments.map { it.toComment() }.toMutableList(),
+                    createdAt = a.sessionCreatedAt
+                ),
+                archivedAt = a.archivedAt
+            )
+        }
     }
 
     companion object {
         private const val MAX_UNDO = 100
+        private const val MAX_HISTORY = 50
 
         private fun ReviewComment.toState() = CommentState().also { s ->
             s.id = id

@@ -176,4 +176,46 @@ class ReviewSessionServiceTest {
 
         assertFalse(service.canRedo)
     }
+
+    @Test
+    fun `archiveAndClear keeps session in history`() {
+        service.addComment(ReviewComment(id = "c1", text = "First"))
+        service.updateSummary("Summary")
+        service.archiveAndClear()
+
+        assertTrue(service.currentSession.comments.isEmpty())
+        val archived = service.reviewHistory.single().session
+        assertEquals("c1", archived.comments.single().id)
+        assertEquals("Summary", archived.summary)
+    }
+
+    @Test
+    fun `archiveAndClear skips empty session`() {
+        service.archiveAndClear()
+        assertTrue(service.reviewHistory.isEmpty())
+    }
+
+    @Test
+    fun `restoreFromHistory replaces current session and is undoable`() {
+        service.addComment(ReviewComment(id = "c1", text = "Old"))
+        service.archiveAndClear()
+        service.addComment(ReviewComment(id = "c2", text = "Current"))
+
+        service.restoreFromHistory(service.reviewHistory.single())
+        assertEquals("c1", service.currentSession.comments.single().id)
+
+        service.undo()
+        assertEquals("c2", service.currentSession.comments.single().id)
+    }
+
+    @Test
+    fun `history survives serialization`() {
+        service.addComment(ReviewComment(id = "c1", scope = CommentScope.FILE, text = "Old", filePath = "a.go"))
+        service.archiveAndClear()
+
+        val newService = ReviewSessionService(null)
+        newService.loadState(service.state)
+
+        assertEquals("c1", newService.reviewHistory.single().session.comments.single().id)
+    }
 }
