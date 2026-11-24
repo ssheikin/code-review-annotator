@@ -9,10 +9,12 @@ import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.ui.JBColor
 import java.awt.*
 
-enum class HoveredButton { NONE, EDIT, DELETE }
+enum class HoveredButton { NONE, TOGGLE, EDIT, DELETE }
 
 class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRenderer {
 
+    var toggleBounds: Rectangle? = null
+        private set
     var editLinkBounds: Rectangle? = null
         private set
     var deleteLinkBounds: Rectangle? = null
@@ -35,7 +37,6 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
 
     companion object {
         private const val ACCENT_BAR_WIDTH = 3
-        private const val PADDING_LEFT = 12
         private const val PADDING_RIGHT = 12
         private const val PADDING_TOP = 6
         private const val PADDING_BOTTOM = 6
@@ -55,7 +56,10 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         val editor = inlay.editor
         val font = editor.colorsScheme.getFont(com.intellij.openapi.editor.colors.EditorFontType.PLAIN)
         val metrics = editor.component.getFontMetrics(font)
-        val availableWidth = calcWidthInPixels(inlay) - ACCENT_BAR_WIDTH - PADDING_LEFT - PADDING_RIGHT - 10
+        val availableWidth = calcWidthInPixels(inlay) - contentInset() - PADDING_RIGHT - 10
+        if (InlineCommentManager.isCollapsed(comment.id)) {
+            return PADDING_TOP + BADGE_HEIGHT + PADDING_BOTTOM
+        }
         val wrappedLineCount = wrapText(comment.text, metrics, availableWidth.coerceAtLeast(100))
         val textHeight = wrappedLineCount * metrics.height
         return PADDING_TOP + BADGE_HEIGHT + GAP_BADGE_TEXT + textHeight + PADDING_BOTTOM
@@ -83,9 +87,23 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         g2.color = accentColor
         g2.fillRect(x, y, ACCENT_BAR_WIDTH, height)
 
-        val contentX = x + ACCENT_BAR_WIDTH + PADDING_LEFT
-        val availableWidth = width - ACCENT_BAR_WIDTH - PADDING_LEFT - PADDING_RIGHT - 10
+        val collapsed = InlineCommentManager.isCollapsed(comment.id)
+        val hoverColor = JBColor(Color(0, 0, 0, 30), Color(255, 255, 255, 30))
         var currentY = y + PADDING_TOP
+
+        // Collapse toggle
+        val toggleIcon = if (collapsed) AllIcons.General.ArrowRight else AllIcons.General.ArrowDown
+        val toggleX = x + ACCENT_BAR_WIDTH + ICON_BTN_PAD
+        val toggleW = toggleIcon.iconWidth + ICON_BTN_PAD * 2
+        if (hoveredButton == HoveredButton.TOGGLE) {
+            g2.color = hoverColor
+            g2.fillRoundRect(toggleX, currentY, toggleW, BADGE_HEIGHT, 4, 4)
+        }
+        toggleIcon.paintIcon(inlay.editor.component, g2, toggleX + ICON_BTN_PAD, currentY + (BADGE_HEIGHT - toggleIcon.iconHeight) / 2)
+        toggleBounds = Rectangle(toggleX, currentY - y, toggleW, BADGE_HEIGHT)
+
+        val contentX = x + contentInset()
+        val availableWidth = width - contentInset() - PADDING_RIGHT - 10
 
         // Type badge
         val badgeText = comment.type.name
@@ -106,7 +124,6 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         val iconH = editIcon.iconHeight
         val iconBtnW = iconW + ICON_BTN_PAD * 2
         val iconOffsetY = (BADGE_HEIGHT - iconH) / 2
-        val hoverColor = JBColor(Color(0, 0, 0, 30), Color(255, 255, 255, 30))
 
         val editBtnX = contentX + badgeWidth + GAP_BADGE_TEXT * 2
         if (hoveredButton == HoveredButton.EDIT) {
@@ -124,11 +141,21 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         deleteIcon.paintIcon(inlay.editor.component, g2, deleteBtnX + ICON_BTN_PAD, currentY + iconOffsetY)
         deleteLinkBounds = Rectangle(deleteBtnX, currentY - y, iconBtnW, BADGE_HEIGHT)
 
+        g2.font = font
+        g2.color = JBColor(Color(50, 50, 50), Color(200, 200, 200))
+
+        if (collapsed) {
+            val previewX = deleteBtnX + iconBtnW + GAP_BADGE_TEXT * 2
+            val preview = wrapTextToLines(comment.text.replace("\n", " "), metrics, (x + width - previewX - PADDING_RIGHT).coerceAtLeast(100)).first()
+            val ellipsis = if (preview.length < comment.text.trim().length) "\u2026" else ""
+            g2.drawString(preview + ellipsis, previewX, currentY + (BADGE_HEIGHT + metrics.ascent - metrics.descent) / 2)
+            g2.dispose()
+            return
+        }
+
         currentY += BADGE_HEIGHT + GAP_BADGE_TEXT
 
         // Wrapped comment text
-        g2.font = font
-        g2.color = JBColor(Color(50, 50, 50), Color(200, 200, 200))
         val lines = wrapTextToLines(comment.text, metrics, availableWidth.coerceAtLeast(100))
         for (line in lines) {
             g2.drawString(line, contentX, currentY + metrics.ascent)
@@ -137,6 +164,9 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
 
         g2.dispose()
     }
+
+    private fun contentInset(): Int =
+        ACCENT_BAR_WIDTH + ICON_BTN_PAD + AllIcons.General.ArrowDown.iconWidth + ICON_BTN_PAD * 2 + ICON_GAP
 
     private fun wrapText(text: String, metrics: FontMetrics, maxWidth: Int): Int {
         return wrapTextToLines(text, metrics, maxWidth).size

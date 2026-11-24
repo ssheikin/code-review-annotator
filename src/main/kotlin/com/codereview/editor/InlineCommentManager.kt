@@ -18,6 +18,16 @@ object InlineCommentManager {
     private val log = Logger.getInstance(InlineCommentManager::class.java)
     private val inlays = mutableMapOf<String, Inlay<InlineCommentRenderer>>()
     private var currentEditorPopup: JBPopup? = null
+    private val collapsedIds = mutableSetOf<String>()
+
+    fun isCollapsed(commentId: String): Boolean = commentId in collapsedIds
+
+    fun toggleCollapsed(inlay: Inlay<*>) {
+        val renderer = inlay.renderer as? InlineCommentRenderer ?: return
+        val id = renderer.comment.id
+        if (!collapsedIds.remove(id)) collapsedIds.add(id)
+        inlay.update()
+    }
 
     fun addInlineComment(@Suppress("UNUSED_PARAMETER") project: Project, editor: Editor, comment: ReviewComment) {
         val lineStart = (comment.lineStart ?: return) - 1

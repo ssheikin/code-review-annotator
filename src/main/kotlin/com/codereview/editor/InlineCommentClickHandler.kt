@@ -30,6 +30,13 @@ class InlineCommentClickHandler(private val project: Project) : EditorMouseListe
 
             // Link bounds are stored relative to inlay top (y=0),
             // so offset by bounds.y to get absolute coordinates
+            val toggle = renderer.toggleBounds
+            if (toggle != null && Rectangle(toggle.x, bounds.y + toggle.y, toggle.width, toggle.height).contains(point)) {
+                InlineCommentManager.toggleCollapsed(inlay)
+                event.consume()
+                return
+            }
+
             val editBounds = renderer.editLinkBounds
             if (editBounds != null) {
                 val editRect = Rectangle(

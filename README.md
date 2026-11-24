@@ -58,6 +58,8 @@ Open the **Code Review** tool window (bottom panel). All comments are listed, so
 
 Double-click a comment to navigate to its file and line in the editor.
 
+In the editor, click the arrow on an inline comment to collapse it to one line.
+
 ### 3. Export to clipboard
 
 Click **Export Comments to Clipboard** in the tool window toolbar, or press <kbd>Ctrl+Shift+Alt+E</kbd>.

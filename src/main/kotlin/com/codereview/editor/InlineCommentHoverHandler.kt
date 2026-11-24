@@ -25,10 +25,12 @@ class InlineCommentHoverHandler : EditorMouseMotionListener {
             val bounds = inlay.bounds ?: continue
             if (!bounds.contains(point)) continue
 
+            val toggleRect = renderer.toggleBounds?.let { Rectangle(it.x, bounds.y + it.y, it.width, it.height) }
             val editRect = renderer.editLinkBounds?.let { Rectangle(it.x, bounds.y + it.y, it.width, it.height) }
             val deleteRect = renderer.deleteLinkBounds?.let { Rectangle(it.x, bounds.y + it.y, it.width, it.height) }
 
             newHoveredButton = when {
+                toggleRect?.contains(point) == true -> HoveredButton.TOGGLE
                 editRect?.contains(point) == true -> HoveredButton.EDIT
                 deleteRect?.contains(point) == true -> HoveredButton.DELETE
                 else -> HoveredButton.NONE
