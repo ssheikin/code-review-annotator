@@ -1,10 +1,15 @@
 package com.codereview.editor
 
 import com.codereview.model.CommentType
+import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.keymap.KeymapUtil
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
 import java.awt.*
+import java.awt.event.InputEvent
+import java.awt.event.KeyEvent
 import javax.swing.*
 
 class InlineCommentEditorPanel(
@@ -60,7 +65,7 @@ class InlineCommentEditorPanel(
         }
         add(scrollPane, BorderLayout.CENTER)
 
-        val hintLabel = JLabel("Ctrl+Enter to save, Escape to cancel").apply {
+        val hintLabel = JLabel("${typeShortcutHint()}, Ctrl+Enter to save, Escape to cancel").apply {
             foreground = JBColor(Color(140, 140, 140), Color(120, 120, 120))
             font = font.deriveFont(font.size2D - 1)
             border = BorderFactory.createEmptyBorder(4, 0, 0, 0)
@@ -75,6 +80,8 @@ class InlineCommentEditorPanel(
                 BorderFactory.createEmptyBorder(8, 10, 8, 10)
             )
         }
+
+        installTypeShortcuts(typeCombo, textArea)
 
         // Escape to cancel
         textArea.getInputMap(JComponent.WHEN_FOCUSED).put(
@@ -105,6 +112,23 @@ class InlineCommentEditorPanel(
     }
 
     companion object {
+        private fun typeKeyStroke(index: Int): KeyStroke =
+            KeyStroke.getKeyStroke(KeyEvent.VK_1 + index, InputEvent.ALT_DOWN_MASK)
+
+        // Registered as IDE actions rather than Swing key bindings so the
+        // focused component wins over global keymap entries like Alt+1.
+        fun installTypeShortcuts(combo: ComboBox<CommentType>, target: JComponent) {
+            CommentType.entries.forEachIndexed { index, type ->
+                DumbAwareAction.create { combo.selectedItem = type }
+                    .registerCustomShortcutSet(CustomShortcutSet(typeKeyStroke(index)), target)
+            }
+            combo.toolTipText = typeShortcutHint()
+        }
+
+        fun typeShortcutHint(): String = CommentType.entries.mapIndexed { index, type ->
+            "${KeymapUtil.getKeystrokeText(typeKeyStroke(index))} ${type.name}"
+        }.joinToString(", ")
+
         fun accentColorFor(type: CommentType): Color = when (type) {
             CommentType.MUST_DO -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
             CommentType.SUGGESTION -> JBColor(Color(50, 100, 220), Color(80, 130, 255))

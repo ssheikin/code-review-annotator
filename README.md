@@ -52,6 +52,8 @@ Each comment has a type:
 - **SUGGESTION**: an improvement to consider
 - **QUESTION**: something to clarify
 
+While typing a comment, press <kbd>Alt+1</kbd>, <kbd>Alt+2</kbd> or <kbd>Alt+3</kbd> to pick the type.
+
 ### 2. Browse comments
 
 Open the **Code Review** tool window (bottom panel). All comments are listed, sorted by scope → file → line.

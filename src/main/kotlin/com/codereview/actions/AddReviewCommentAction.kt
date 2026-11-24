@@ -1,5 +1,6 @@
 package com.codereview.actions
 
+import com.codereview.editor.InlineCommentEditorPanel
 import com.codereview.model.CommentScope
 import com.codereview.model.CommentType
 import com.codereview.model.ReviewComment
@@ -59,6 +60,7 @@ class CommentDialog(
 
     init {
         this.title = title
+        InlineCommentEditorPanel.installTypeShortcuts(typeCombo, textArea)
         init()
     }
 
