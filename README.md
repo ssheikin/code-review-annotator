@@ -22,7 +22,7 @@ direnv allow   # or: nix develop
 ./gradlew buildPlugin
 ```
 
-The plugin zip is generated at `build/distributions/code-review-annotator-0.1.0.zip`.
+The plugin zip is generated at `build/distributions/code-review-annotator-0.1.1.zip`.
 
 In GoLand/IntelliJ: **Settings → Plugins → ⚙️ → Install Plugin from Disk...** → select the zip.
 
