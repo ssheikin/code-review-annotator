@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.codereview.annotator</id>
     <name>Code Review Annotator</name>
-    <version>0.1.1</version>
+    <version>0.2.5</version>
     <vendor>Code Review</vendor>
     <description><![CDATA[
         Add review comments on diffs right from your IDE on a line, a file, or the whole review.

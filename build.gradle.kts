@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.codereview"
-version = "0.1.1"
+version = "0.2.5"
 
 repositories {
     mavenCentral()
