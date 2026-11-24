@@ -67,8 +67,6 @@ This copies all comments as numbered markdown:
 ```
 I reviewed your code and have the following comments. Please address them.
 
-Comment types: ISSUE (problems to fix), SUGGESTION (improvements), NOTE (observations)
-
 1. **[SUGGESTION]** `src/auth.go:42` - Consider adding unit tests
 2. **[ISSUE]** `src/handler.go:10-15` - Race condition on shared map
 3. **[NOTE]** `Review Comment` - Overall structure looks clean

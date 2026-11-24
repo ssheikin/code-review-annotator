@@ -18,9 +18,6 @@ object MarkdownExporter {
         sb.appendLine()
 
         if (exportableComments.isNotEmpty()) {
-            sb.appendLine("Comment types: ISSUE (problems to fix), SUGGESTION (improvements), NOTE (observations)")
-            sb.appendLine()
-
             val sorted = exportableComments.sortedWith(
                 compareBy<com.codereview.model.ReviewComment> { it.scope.ordinal }
                     .thenBy { it.filePath ?: "" }

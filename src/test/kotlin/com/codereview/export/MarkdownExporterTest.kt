@@ -78,14 +78,12 @@ class MarkdownExporterTest {
     }
 
     @Test
-    fun `export contains header and type legend`() {
+    fun `export contains header without type legend`() {
         val session = ReviewSession(
             comments = mutableListOf(ReviewComment(scope = CommentScope.FILE, text = "Test", filePath = "a.go"))
         )
         val result = MarkdownExporter.export(session)
         assertTrue(result.contains("I reviewed your code and have the following comments."))
-        assertTrue(result.contains("Comment types: ISSUE (problems to fix)"))
-        assertTrue(result.contains("SUGGESTION (improvements)"))
-        assertTrue(result.contains("NOTE (observations)"))
+        assertFalse(result.contains("Comment types:"))
     }
 }
