@@ -8,11 +8,14 @@ import com.codereview.model.ReviewComment
 import com.codereview.service.ReviewSessionService
 import com.codereview.ui.accentColor
 import com.codereview.ui.listBackground
-import com.intellij.diff.DiffDialogHints
-import com.intellij.diff.DiffManager
+import com.intellij.diff.editor.ChainDiffVirtualFile
+import com.intellij.diff.util.DiffUserDataKeys
+import com.intellij.diff.util.Side
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.Pair
 import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer
 import com.intellij.openapi.vcs.changes.ui.ChangeDiffRequestChain
@@ -26,7 +29,9 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
+import com.intellij.util.PathUtil
 import com.intellij.util.text.DateFormatUtil
+import com.intellij.vcsUtil.VcsUtil
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -222,23 +227,22 @@ class ReviewPanel(private val project: Project) : JPanel(BorderLayout()) {
         val filePath = comment.filePath ?: return
         val basePath = project.basePath ?: return
         val fullPath = "$basePath/$filePath"
-        val vf = LocalFileSystem.getInstance().findFileByPath(fullPath) ?: return
-        val line = (comment.lineStart ?: 1) - 1
+        val line = ((comment.lineStart ?: 1) - 1).coerceAtLeast(0)
 
-        // Try to open diff if file has uncommitted changes
-        val change = ChangeListManager.getInstance(project).getChange(vf)
-        if (change != null) {
-            val producer = ChangeDiffRequestProducer.create(project, change)
-            if (producer != null) {
-                val chain = ChangeDiffRequestChain(listOf(producer), 0)
-                DiffManager.getInstance().showDiff(project, chain, DiffDialogHints.DEFAULT)
-                return
-            }
+        val vf = LocalFileSystem.getInstance().findFileByPath(fullPath)
+        if (vf != null) {
+            val descriptor = OpenFileDescriptor(project, vf, line, 0)
+            FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
+            return
         }
 
-        // Fallback: regular file
-        val descriptor = OpenFileDescriptor(project, vf, line.coerceAtLeast(0), 0)
-        FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
+        // A deleted file survives only as the left side of its diff.
+        val change = ChangeListManager.getInstance(project).getChange(VcsUtil.getFilePath(fullPath, false)) ?: return
+        val context = mapOf<Key<*>, Any>(DiffUserDataKeys.SCROLL_TO_LINE to Pair.create(Side.LEFT, line))
+        val producer = ChangeDiffRequestProducer.create(project, change, context) ?: return
+        val chain = ChangeDiffRequestChain(listOf(producer), 0)
+        // Opened as a plain editor file, because the diff manager may put it in a separate window.
+        FileEditorManager.getInstance(project).openFile(ChainDiffVirtualFile(chain, PathUtil.getFileName(filePath)), true)
     }
 
     private fun deleteComment(comment: ReviewComment) {
