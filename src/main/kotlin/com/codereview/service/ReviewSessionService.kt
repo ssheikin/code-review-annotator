@@ -124,34 +124,12 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         state.sessionCreatedAt = session.createdAt
         state.baseBranch = session.baseBranch
         state.summary = session.summary
-        state.comments = session.comments.map { c ->
-            CommentState().apply {
-                id = c.id
-                scope = c.scope.name
-                type = c.type.name
-                text = c.text
-                filePath = c.filePath
-                lineStart = c.lineStart
-                lineEnd = c.lineEnd
-                createdAt = c.createdAt
-            }
-        }.toMutableList()
+        state.comments = session.comments.map { it.toState() }.toMutableList()
         return state
     }
 
     override fun loadState(state: State) {
-        val comments = state.comments.map { c ->
-            ReviewComment(
-                id = c.id,
-                scope = CommentScope.valueOf(c.scope),
-                type = CommentType.valueOf(c.type),
-                text = c.text,
-                filePath = c.filePath,
-                lineStart = c.lineStart,
-                lineEnd = c.lineEnd,
-                createdAt = c.createdAt
-            )
-        }.toMutableList()
+        val comments = state.comments.map { it.toComment() }.toMutableList()
         // Migrate legacy REVIEW-scoped comments into the summary field
         val migratedSummary = if (state.summary.isEmpty()) {
             comments.filter { it.scope == CommentScope.REVIEW }.joinToString("\n\n") { it.text }
@@ -170,6 +148,28 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
 
     companion object {
         private const val MAX_UNDO = 100
+
+        private fun ReviewComment.toState() = CommentState().also { s ->
+            s.id = id
+            s.scope = scope.name
+            s.type = type.name
+            s.text = text
+            s.filePath = filePath
+            s.lineStart = lineStart
+            s.lineEnd = lineEnd
+            s.createdAt = createdAt
+        }
+
+        private fun CommentState.toComment() = ReviewComment(
+            id = id,
+            scope = CommentScope.valueOf(scope),
+            type = CommentType.valueOf(type),
+            text = text,
+            filePath = filePath,
+            lineStart = lineStart,
+            lineEnd = lineEnd,
+            createdAt = createdAt
+        )
 
         fun getInstance(project: Project): ReviewSessionService =
             project.getService(ReviewSessionService::class.java)
