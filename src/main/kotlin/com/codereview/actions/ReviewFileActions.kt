@@ -15,6 +15,7 @@ import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.JDOMUtil
+import com.intellij.util.xmlb.SkipDefaultsSerializationFilter
 import com.intellij.util.xmlb.XmlSerializer
 import org.jdom.Element
 
@@ -29,8 +30,7 @@ class ExportReviewsToFileAction : AnAction(
             .createSaveFileDialog(FileSaverDescriptor("Export Reviews", "", "xml"), project)
             .save("code-reviews.xml") ?: return
         val state = ReviewSessionService.getInstance(project).state
-        val element = XmlSerializer.serialize(state) ?: Element("State")
-        JDOMUtil.write(element, target.file.toPath())
+        JDOMUtil.write(serializeReviews(state), target.file.toPath())
         notify(project, "Exported reviews to ${target.file.path}.")
     }
 
@@ -51,7 +51,7 @@ class ImportReviewsFromFileAction : AnAction(
         val descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("xml")
         val file = FileChooser.chooseFile(descriptor, project, null) ?: return
         try {
-            val state = XmlSerializer.deserialize(JDOMUtil.load(file.toNioPath()), ReviewSessionService.State::class.java)
+            val state = deserializeReviews(JDOMUtil.load(file.toNioPath()))
             ReviewSessionService.getInstance(project).importState(state)
         } catch (ex: Exception) {
             notify(project, "Could not read ${file.path}: ${ex.message}", NotificationType.ERROR)
@@ -69,7 +69,27 @@ class ImportReviewsFromFileAction : AnAction(
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
 }
 
-private fun notify(project: Project, message: String, type: NotificationType = NotificationType.INFORMATION) {
+// Without the filter, null fields are written as empty tags, which cannot be read back into numbers.
+internal fun serializeReviews(state: ReviewSessionService.State): Element =
+    XmlSerializer.serialize(state, SkipDefaultsSerializationFilter()) ?: Element("State")
+
+internal fun deserializeReviews(element: Element): ReviewSessionService.State {
+    // Files exported before the filter hold empty tags for null fields; dropping them restores the defaults.
+    dropEmptyTags(element)
+    return XmlSerializer.deserialize(element, ReviewSessionService.State::class.java)
+}
+
+private fun dropEmptyTags(element: Element) {
+    element.children.toList().forEach { child ->
+        if (child.children.isEmpty() && !child.hasAttributes() && child.text.isEmpty()) {
+            element.removeContent(child)
+        } else {
+            dropEmptyTags(child)
+        }
+    }
+}
+
+private fun notify(project: Project,message: String, type: NotificationType = NotificationType.INFORMATION) {
     NotificationGroupManager.getInstance()
         .getNotificationGroup("CodeReviewAnnotator")
         .createNotification(message, type)
