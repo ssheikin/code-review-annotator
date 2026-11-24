@@ -4,9 +4,10 @@ import com.codereview.actions.RedoReviewChangeAction
 import com.codereview.actions.UndoReviewChangeAction
 import com.codereview.editor.InlineCommentManager
 import com.codereview.model.CommentScope
-import com.codereview.model.CommentType
 import com.codereview.model.ReviewComment
 import com.codereview.service.ReviewSessionService
+import com.codereview.ui.accentColor
+import com.codereview.ui.listBackground
 import com.intellij.diff.DiffDialogHints
 import com.intellij.diff.DiffManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -358,12 +359,12 @@ private class CommentCellPanel : JPanel() {
         if (isSelectedState) {
             g2.color = listRef?.selectionBackground ?: UIManager.getColor("List.selectionBackground")
         } else {
-            g2.color = bgColor(comment.type)
+            g2.color = comment.type.listBackground
         }
         g2.fillRect(0, 0, w, h)
 
         // Accent bar
-        g2.color = accentColor(comment.type)
+        g2.color = comment.type.accentColor
         g2.fillRect(0, 0, ACCENT_WIDTH, h)
 
         // Separator line at bottom
@@ -382,7 +383,7 @@ private class CommentCellPanel : JPanel() {
         val badgeW = badgeTextW + BADGE_PAD_H * 2
 
         // Draw badge pill
-        g2.color = accentColor(comment.type)
+        g2.color = comment.type.accentColor
         g2.fill(RoundRectangle2D.Float(
             contentX.toFloat(), currentY.toFloat(),
             badgeW.toFloat(), BADGE_HEIGHT.toFloat(), 6f, 6f
@@ -451,18 +452,6 @@ private class CommentCellPanel : JPanel() {
         private const val BADGE_HEIGHT = 18
         private const val BADGE_PAD_H = 6
         private const val GAP = 4
-
-        private fun accentColor(type: CommentType): Color = when (type) {
-            CommentType.MUST_DO -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
-            CommentType.SUGGESTION -> JBColor(Color(50, 100, 220), Color(80, 130, 255))
-            CommentType.QUESTION -> JBColor(Color(200, 160, 0), Color(220, 180, 50))
-        }
-
-        private fun bgColor(type: CommentType): Color = when (type) {
-            CommentType.MUST_DO -> JBColor(Color(255, 245, 245), Color(45, 25, 25))
-            CommentType.SUGGESTION -> JBColor(Color(245, 247, 255), Color(25, 28, 45))
-            CommentType.QUESTION -> JBColor(Color(255, 252, 240), Color(42, 40, 25))
-        }
 
         private fun formatLocation(comment: ReviewComment): String = when (comment.scope) {
             CommentScope.LINE -> {

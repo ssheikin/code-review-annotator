@@ -1,6 +1,7 @@
 package com.codereview.editor
 
 import com.codereview.model.CommentType
+import com.codereview.ui.accentColor
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAwareAction
@@ -30,7 +31,7 @@ class InlineCommentEditorPanel(
 
     init {
         border = BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 3, 0, 0, accentColorFor(initialType)),
+            BorderFactory.createMatteBorder(0, 3, 0, 0, initialType.accentColor),
             BorderFactory.createEmptyBorder(8, 10, 8, 10)
         )
         background = JBColor(Color(245, 245, 250), Color(45, 45, 50))
@@ -76,7 +77,7 @@ class InlineCommentEditorPanel(
         typeCombo.addActionListener {
             val type = typeCombo.selectedItem as CommentType
             border = BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 3, 0, 0, accentColorFor(type)),
+                BorderFactory.createMatteBorder(0, 3, 0, 0, type.accentColor),
                 BorderFactory.createEmptyBorder(8, 10, 8, 10)
             )
         }
@@ -128,11 +129,5 @@ class InlineCommentEditorPanel(
         fun typeShortcutHint(): String = CommentType.entries.mapIndexed { index, type ->
             "${KeymapUtil.getKeystrokeText(typeKeyStroke(index))} ${type.name}"
         }.joinToString(", ")
-
-        fun accentColorFor(type: CommentType): Color = when (type) {
-            CommentType.MUST_DO -> JBColor(Color(220, 50, 50), Color(220, 80, 80))
-            CommentType.SUGGESTION -> JBColor(Color(50, 100, 220), Color(80, 130, 255))
-            CommentType.QUESTION -> JBColor(Color(200, 160, 0), Color(220, 180, 50))
-        }
     }
 }
