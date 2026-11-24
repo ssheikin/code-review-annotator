@@ -113,6 +113,23 @@ class ReviewSessionServiceTest {
     }
 
     @Test
+    fun `loadState maps legacy comment types`() {
+        val state = ReviewSessionService.State().apply {
+            comments = mutableListOf(
+                ReviewSessionService.CommentState().apply { id = "c1"; scope = "LINE"; type = "ISSUE" },
+                ReviewSessionService.CommentState().apply { id = "c2"; scope = "LINE"; type = "NOTE" },
+            )
+        }
+        val newService = ReviewSessionService(null)
+        newService.loadState(state)
+
+        assertEquals(
+            listOf(CommentType.MUST_DO, CommentType.QUESTION),
+            newService.currentSession.comments.map { it.type }
+        )
+    }
+
+    @Test
     fun `serialization with null optional fields`() {
         val comment = ReviewComment(id = "c1", scope = CommentScope.FILE, text = "File note", filePath = "a.go")
         service.addComment(comment)

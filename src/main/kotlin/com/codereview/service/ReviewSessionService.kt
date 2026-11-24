@@ -266,6 +266,9 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         private const val MAX_UNDO = 100
         private const val MAX_HISTORY = 50
 
+        // Reviews saved before the type rename still store the old names.
+        private val LEGACY_TYPES = mapOf("ISSUE" to "MUST_DO", "NOTE" to "QUESTION")
+
         private fun ReviewComment.toState() = CommentState().also { s ->
             s.id = id
             s.scope = scope.name
@@ -286,7 +289,7 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         private fun CommentState.toComment() = ReviewComment(
             id = id,
             scope = CommentScope.valueOf(scope),
-            type = CommentType.valueOf(type),
+            type = CommentType.valueOf(LEGACY_TYPES[type] ?: type),
             text = text,
             filePath = filePath,
             lineStart = lineStart,
