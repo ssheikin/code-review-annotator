@@ -21,7 +21,7 @@ interface ReviewCommentListener {
     storages = [Storage(StoragePathMacros.WORKSPACE_FILE)]
 )
 @Service(Service.Level.PROJECT)
-class ReviewSessionService(private val project: Project) : PersistentStateComponent<ReviewSessionService.State> {
+class ReviewSessionService(private val project: Project?) : PersistentStateComponent<ReviewSessionService.State> {
 
     class CommentState {
         @Tag("id") var id: String = ""
@@ -47,7 +47,7 @@ class ReviewSessionService(private val project: Project) : PersistentStateCompon
     val currentSession: ReviewSession get() = session
 
     private fun fireCommentsChanged() {
-        project.messageBus.syncPublisher(ReviewCommentListener.TOPIC).commentsChanged()
+        project?.messageBus?.syncPublisher(ReviewCommentListener.TOPIC)?.commentsChanged()
     }
 
     fun addComment(comment: ReviewComment) {

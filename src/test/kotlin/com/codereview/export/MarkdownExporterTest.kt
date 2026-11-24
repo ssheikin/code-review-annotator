@@ -13,15 +13,10 @@ class MarkdownExporterTest {
     }
 
     @Test
-    fun `export single review comment`() {
-        val session = ReviewSession(
-            comments = mutableListOf(
-                ReviewComment(scope = CommentScope.REVIEW, type = CommentType.NOTE, text = "Looks clean")
-            )
-        )
+    fun `export summary replaces default header`() {
+        val session = ReviewSession(summary = "Looks clean")
         val result = MarkdownExporter.export(session)
-        assertTrue(result.contains("1. **[NOTE]** `Review Comment` - Looks clean"))
-        assertTrue(result.contains("I reviewed your code"))
+        assertEquals("Looks clean\n", result)
     }
 
     @Test
@@ -70,30 +65,27 @@ class MarkdownExporterTest {
         val session = ReviewSession(
             comments = mutableListOf(
                 ReviewComment(scope = CommentScope.LINE, type = CommentType.ISSUE, text = "Bug", filePath = "z.go", lineStart = 5),
-                ReviewComment(scope = CommentScope.REVIEW, type = CommentType.NOTE, text = "Overall clean"),
                 ReviewComment(scope = CommentScope.FILE, type = CommentType.SUGGESTION, text = "Refactor", filePath = "a.go"),
                 ReviewComment(scope = CommentScope.LINE, type = CommentType.NOTE, text = "Nice", filePath = "a.go", lineStart = 1)
             )
         )
         val result = MarkdownExporter.export(session)
         val lines = result.lines().filter { it.matches(Regex("^\\d+\\..*")) }
-        assertEquals(4, lines.size)
-        assertTrue(lines[0].contains("Review Comment"))  // REVIEW first
-        assertTrue(lines[1].contains("a.go` - Refactor"))  // FILE second
-        assertTrue(lines[2].contains("a.go:1"))  // LINE, a.go before z.go
-        assertTrue(lines[3].contains("z.go:5"))
+        assertEquals(3, lines.size)
+        assertTrue(lines[0].contains("a.go` - Refactor"))  // FILE first
+        assertTrue(lines[1].contains("a.go:1"))  // LINE, a.go before z.go
+        assertTrue(lines[2].contains("z.go:5"))
     }
 
     @Test
     fun `export contains header and type legend`() {
         val session = ReviewSession(
-            comments = mutableListOf(ReviewComment(text = "Test"))
+            comments = mutableListOf(ReviewComment(scope = CommentScope.FILE, text = "Test", filePath = "a.go"))
         )
         val result = MarkdownExporter.export(session)
         assertTrue(result.contains("I reviewed your code and have the following comments."))
         assertTrue(result.contains("Comment types: ISSUE (problems to fix)"))
         assertTrue(result.contains("SUGGESTION (improvements)"))
-        assertTrue(result.contains("NOTE (observations)"))
         assertTrue(result.contains("NOTE (observations)"))
     }
 }

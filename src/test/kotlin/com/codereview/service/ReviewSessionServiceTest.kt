@@ -11,7 +11,7 @@ class ReviewSessionServiceTest {
 
     @Before
     fun setup() {
-        service = ReviewSessionService()
+        service = ReviewSessionService(null)
     }
 
     @Test
@@ -82,7 +82,7 @@ class ReviewSessionServiceTest {
         val state = service.state
 
         // Create a new service and load the state
-        val newService = ReviewSessionService()
+        val newService = ReviewSessionService(null)
         newService.loadState(state)
 
         val restored = newService.currentSession.comments[0]
@@ -103,26 +103,25 @@ class ReviewSessionServiceTest {
         service.addComment(ReviewComment(id = "c3", scope = CommentScope.LINE, text = "Bug", filePath = "main.go", lineStart = 10))
 
         val state = service.state
-        val newService = ReviewSessionService()
+        val newService = ReviewSessionService(null)
         newService.loadState(state)
 
-        assertEquals(3, newService.currentSession.comments.size)
-        assertEquals("c1", newService.currentSession.comments[0].id)
-        assertEquals("c2", newService.currentSession.comments[1].id)
-        assertEquals("c3", newService.currentSession.comments[2].id)
+        assertEquals(2, newService.currentSession.comments.size)
+        assertEquals("c2", newService.currentSession.comments[0].id)
+        assertEquals("c3", newService.currentSession.comments[1].id)
+        assertEquals("Overall good", newService.currentSession.summary)
     }
 
     @Test
     fun `serialization with null optional fields`() {
-        val comment = ReviewComment(id = "c1", text = "Review note")
+        val comment = ReviewComment(id = "c1", scope = CommentScope.FILE, text = "File note", filePath = "a.go")
         service.addComment(comment)
 
         val state = service.state
-        val newService = ReviewSessionService()
+        val newService = ReviewSessionService(null)
         newService.loadState(state)
 
         val restored = newService.currentSession.comments[0]
-        assertNull(restored.filePath)
         assertNull(restored.lineStart)
         assertNull(restored.lineEnd)
     }
