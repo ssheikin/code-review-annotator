@@ -42,7 +42,7 @@ class ReviewToolWindowFactory : ToolWindowFactory {
         val panel = ReviewPanel(project)
 
         val actionGroup = ActionManager.getInstance()
-            .getAction("CodeReview.ToolWindowToolbar") as? com.intellij.openapi.actionSystem.ActionGroup
+            .getAction("CodeReviewAnnotator.ToolWindowToolbar") as? com.intellij.openapi.actionSystem.ActionGroup
         val wrapper = JPanel(BorderLayout())
         if (actionGroup != null) {
             val toolbar = ActionManager.getInstance()

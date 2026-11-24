@@ -44,78 +44,78 @@
 
     <actions>
         <!-- Review-wide comment from tool window toolbar -->
-        <action id="CodeReview.AddReviewComment"
+        <action id="CodeReviewAnnotator.AddReviewComment"
                 class="com.codereview.actions.AddReviewCommentAction"
                 text="Add Review Comment"
                 description="Add a review-wide comment">
         </action>
 
-        <action id="CodeReview.ExportToClipboard"
+        <action id="CodeReviewAnnotator.ExportToClipboard"
                 class="com.codereview.actions.ExportToClipboardAction"
                 text="Copy Review"
                 description="Copy all review comments as markdown to the clipboard">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt E"/>
         </action>
 
-        <action id="CodeReview.ClearSession"
+        <action id="CodeReviewAnnotator.ClearSession"
                 class="com.codereview.actions.ClearSessionAction"
                 text="Clear Session"
                 description="Clear all review comments">
         </action>
 
-        <action id="CodeReview.ExportToTerminal"
+        <action id="CodeReviewAnnotator.ExportToTerminal"
                 class="com.codereview.actions.ExportToTerminalAction"
                 text="Submit Review"
                 description="Submit all review comments to the terminal">
             <add-to-group group-id="TerminalToolwindowActionGroup" anchor="last"/>
         </action>
 
-        <action id="CodeReview.ShowHistory"
+        <action id="CodeReviewAnnotator.ShowHistory"
                 class="com.codereview.actions.ShowReviewHistoryAction"
                 text="Review History"
                 description="Restore a submitted or cleared review">
         </action>
 
-        <action id="CodeReview.ExportToFile"
+        <action id="CodeReviewAnnotator.ExportToFile"
                 class="com.codereview.actions.ExportReviewsToFileAction"
                 text="Export Reviews to File..."
                 description="Save the current review and the review history to a file">
         </action>
 
-        <action id="CodeReview.ImportFromFile"
+        <action id="CodeReviewAnnotator.ImportFromFile"
                 class="com.codereview.actions.ImportReviewsFromFileAction"
                 text="Import Reviews from File..."
                 description="Load a review and its history from an exported file">
         </action>
 
-        <action id="CodeReview.NextComment"
+        <action id="CodeReviewAnnotator.NextComment"
                 class="com.codereview.actions.NextReviewCommentAction"
                 text="Next Review Comment"
                 description="Go to the next line comment">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt DOWN"/>
         </action>
 
-        <action id="CodeReview.PreviousComment"
+        <action id="CodeReviewAnnotator.PreviousComment"
                 class="com.codereview.actions.PreviousReviewCommentAction"
                 text="Previous Review Comment"
                 description="Go to the previous line comment">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt UP"/>
         </action>
 
-        <action id="CodeReview.Undo"
+        <action id="CodeReviewAnnotator.Undo"
                 class="com.codereview.actions.UndoReviewChangeAction"
                 text="Undo Review Change"
                 description="Undo the last change to review comments">
         </action>
 
-        <action id="CodeReview.Redo"
+        <action id="CodeReviewAnnotator.Redo"
                 class="com.codereview.actions.RedoReviewChangeAction"
                 text="Redo Review Change"
                 description="Redo the last undone change to review comments">
         </action>
 
         <!-- File comment from Changes view popup -->
-        <action id="CodeReview.AddFileComment"
+        <action id="CodeReviewAnnotator.AddFileComment"
                 class="com.codereview.actions.AddFileCommentAction"
                 text="Add File Comment..."
                 description="Add a review comment on this file">
@@ -123,7 +123,7 @@
         </action>
 
         <!-- Line comment from editor context menu -->
-        <action id="CodeReview.AddLineCommentFromEditor"
+        <action id="CodeReviewAnnotator.AddLineCommentFromEditor"
                 class="com.codereview.actions.AddLineCommentFromEditorAction"
                 text="Add Review Comment Here..."
                 description="Add a review comment on the selected lines">
@@ -133,19 +133,19 @@
         </action>
 
         <!-- Tool window toolbar group -->
-        <group id="CodeReview.ToolWindowToolbar">
-            <reference ref="CodeReview.ExportToTerminal"/>
-            <reference ref="CodeReview.ExportToClipboard"/>
-            <reference ref="CodeReview.ClearSession"/>
+        <group id="CodeReviewAnnotator.ToolWindowToolbar">
+            <reference ref="CodeReviewAnnotator.ExportToTerminal"/>
+            <reference ref="CodeReviewAnnotator.ExportToClipboard"/>
+            <reference ref="CodeReviewAnnotator.ClearSession"/>
             <separator/>
-            <reference ref="CodeReview.PreviousComment"/>
-            <reference ref="CodeReview.NextComment"/>
+            <reference ref="CodeReviewAnnotator.PreviousComment"/>
+            <reference ref="CodeReviewAnnotator.NextComment"/>
             <separator/>
-            <reference ref="CodeReview.Undo"/>
-            <reference ref="CodeReview.Redo"/>
-            <reference ref="CodeReview.ShowHistory"/>
-            <reference ref="CodeReview.ExportToFile"/>
-            <reference ref="CodeReview.ImportFromFile"/>
+            <reference ref="CodeReviewAnnotator.Undo"/>
+            <reference ref="CodeReviewAnnotator.Redo"/>
+            <reference ref="CodeReviewAnnotator.ShowHistory"/>
+            <reference ref="CodeReviewAnnotator.ExportToFile"/>
+            <reference ref="CodeReviewAnnotator.ImportFromFile"/>
         </group>
     </actions>
 </idea-plugin>
