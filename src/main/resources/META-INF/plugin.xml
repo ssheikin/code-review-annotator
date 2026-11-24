@@ -87,6 +87,20 @@
                 description="Load a review and its history from an exported file">
         </action>
 
+        <action id="CodeReview.NextComment"
+                class="com.codereview.actions.NextReviewCommentAction"
+                text="Next Review Comment"
+                description="Go to the next line comment">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt DOWN"/>
+        </action>
+
+        <action id="CodeReview.PreviousComment"
+                class="com.codereview.actions.PreviousReviewCommentAction"
+                text="Previous Review Comment"
+                description="Go to the previous line comment">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt UP"/>
+        </action>
+
         <action id="CodeReview.Undo"
                 class="com.codereview.actions.UndoReviewChangeAction"
                 text="Undo Review Change"
@@ -122,6 +136,9 @@
             <reference ref="CodeReview.ExportToTerminal"/>
             <reference ref="CodeReview.ExportToClipboard"/>
             <reference ref="CodeReview.ClearSession"/>
+            <separator/>
+            <reference ref="CodeReview.PreviousComment"/>
+            <reference ref="CodeReview.NextComment"/>
             <separator/>
             <reference ref="CodeReview.Undo"/>
             <reference ref="CodeReview.Redo"/>

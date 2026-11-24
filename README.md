@@ -62,6 +62,9 @@ Double-click a comment to navigate to its file and line in the editor.
 
 In the editor, click the arrow on an inline comment to collapse it to one line.
 
+Press <kbd>Ctrl+Shift+Alt+Down</kbd> or <kbd>Ctrl+Shift+Alt+Up</kbd> to jump to the next or previous
+line comment.
+
 ### 3. Export to clipboard
 
 Click **Export Comments to Clipboard** in the tool window toolbar, or press <kbd>Ctrl+Shift+Alt+E</kbd>.
