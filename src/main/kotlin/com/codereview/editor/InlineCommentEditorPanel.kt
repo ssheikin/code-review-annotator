@@ -2,8 +2,12 @@ package com.codereview.editor
 
 import com.codereview.model.CommentType
 import com.codereview.ui.accentColor
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.actionSystem.KeyboardShortcut
+import com.intellij.openapi.actionSystem.Toggleable
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -144,13 +148,32 @@ class InlineCommentEditorPanel(
         private fun typeKeyStroke(index: Int): KeyStroke =
             KeyStroke.getKeyStroke(KeyEvent.VK_1 + index, InputEvent.ALT_DOWN_MASK)
 
+        fun typeShortcutText(type: CommentType): String = KeymapUtil.getKeystrokeText(typeKeyStroke(type.ordinal))
+
         // Registered as IDE actions rather than Swing key bindings so the
         // focused component wins over global keymap entries like Alt+1.
+        // Returned so a context menu can reuse them and show their shortcuts.
+        fun installTypeShortcuts(
+            target: JComponent,
+            isEnabled: () -> Boolean = { true },
+            isSelected: (CommentType) -> Boolean = { false },
+            select: (CommentType) -> Unit
+        ): List<AnAction> = CommentType.entries.mapIndexed { index, type ->
+            object : DumbAwareAction(type.label), Toggleable {
+                override fun actionPerformed(e: AnActionEvent) = select(type)
+
+                // When disabled, the key falls through to the keymap, such as Alt+1 for the Project view.
+                override fun update(e: AnActionEvent) {
+                    e.presentation.isEnabled = isEnabled()
+                    Toggleable.setSelected(e.presentation, isSelected(type))
+                }
+
+                override fun getActionUpdateThread() = ActionUpdateThread.EDT
+            }.apply { registerCustomShortcutSet(CustomShortcutSet(typeKeyStroke(index)), target) }
+        }
+
         fun installTypeShortcuts(combo: ComboBox<CommentType>, target: JComponent) {
-            CommentType.entries.forEachIndexed { index, type ->
-                DumbAwareAction.create { combo.selectedItem = type }
-                    .registerCustomShortcutSet(CustomShortcutSet(typeKeyStroke(index)), target)
-            }
+            installTypeShortcuts(target) { combo.selectedItem = it }
             combo.toolTipText = typeShortcutHint()
         }
 
