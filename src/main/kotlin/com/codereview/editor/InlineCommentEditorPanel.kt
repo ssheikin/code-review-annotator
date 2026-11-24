@@ -19,7 +19,6 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.JBColor
-import com.intellij.ui.SimpleListCellRenderer
 import java.awt.*
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
@@ -33,10 +32,9 @@ class InlineCommentEditorPanel(
     private val onCancel: () -> Unit
 ) : JPanel(BorderLayout(0, 4)) {
 
-    private val typeCombo = ComboBox(CommentType.entries.toTypedArray()).apply {
-        selectedItem = initialType
-        renderer = SimpleListCellRenderer.create("") { it.label }
-    }
+    private var selectedType = initialType
+
+    private val typeButtons = CommentType.entries.associateWith { TypeToggleButton(it) }
 
     // A nested editor rather than a JTextArea: inside the host editor, a plain text area
     // would lose keys like Backspace and Enter to the host editor's actions.
@@ -61,13 +59,19 @@ class InlineCommentEditorPanel(
         )
         background = JBColor(Color(245, 245, 250), Color(45, 45, 50))
 
-        // Top bar: type combo + buttons
+        val typeGroup = ButtonGroup()
+        typeButtons.forEach { (type, button) ->
+            typeGroup.add(button)
+            button.addActionListener { selectType(type) }
+        }
+        typeButtons.getValue(initialType).isSelected = true
+
+        // Top bar: type buttons + buttons
         val topBar = JPanel(BorderLayout(8, 0)).apply {
             isOpaque = false
             val typePanel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
                 isOpaque = false
-                add(JLabel("Type:"))
-                add(typeCombo)
+                typeButtons.values.forEach { add(it) }
             }
             add(typePanel, BorderLayout.WEST)
 
@@ -94,16 +98,7 @@ class InlineCommentEditorPanel(
         }
         add(hintLabel, BorderLayout.SOUTH)
 
-        // Update accent bar color on type change
-        typeCombo.addActionListener {
-            val type = typeCombo.selectedItem as CommentType
-            border = BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 3, 0, 0, type.accentColor),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-            )
-        }
-
-        installTypeShortcuts(typeCombo, textField)
+        installTypeShortcuts(textField) { selectType(it) }
 
         // IDE actions, so they win over the nested editor's own Escape and Enter handling.
         // Ctrl+Enter also saves on macOS, where users used it before Cmd+Enter existed.
@@ -128,10 +123,19 @@ class InlineCommentEditorPanel(
         return Dimension(fixedWidth, chrome + textHeight)
     }
 
+    private fun selectType(type: CommentType) {
+        selectedType = type
+        typeButtons.getValue(type).isSelected = true
+        border = BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 3, 0, 0, type.accentColor),
+            BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        )
+    }
+
     private fun save() {
         val text = textField.text.trim()
         if (text.isNotEmpty()) {
-            onSave(typeCombo.selectedItem as CommentType, text)
+            onSave(selectedType, text)
         }
     }
 
@@ -180,5 +184,53 @@ class InlineCommentEditorPanel(
         fun typeShortcutHint(): String = CommentType.entries.mapIndexed { index, type ->
             "${KeymapUtil.getKeystrokeText(typeKeyStroke(index))} ${type.label}"
         }.joinToString(", ")
+    }
+}
+
+// Painted by hand because the platform button UIs ignore a custom background colour.
+private class TypeToggleButton(val type: CommentType) : JToggleButton(type.label) {
+
+    init {
+        // Clicking must leave focus in the text field so typing continues.
+        isFocusable = false
+        isRequestFocusEnabled = false
+        isContentAreaFilled = false
+        isBorderPainted = false
+        isOpaque = false
+        isRolloverEnabled = true
+        toolTipText = "${type.label} (${InlineCommentEditorPanel.typeShortcutText(type)})"
+        cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+    }
+
+    // Sized for the bold font so the row does not shift when the selection moves.
+    override fun getPreferredSize(): Dimension {
+        val fm = getFontMetrics(font.deriveFont(Font.BOLD))
+        return Dimension(fm.stringWidth(text) + PAD_H * 2, fm.height + PAD_V * 2)
+    }
+
+    override fun paintComponent(g: Graphics) {
+        val g2 = g.create() as Graphics2D
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+        if (isSelected) {
+            g2.color = type.accentColor
+            g2.fillRoundRect(0, 0, width, height, ARC, ARC)
+            g2.font = font.deriveFont(Font.BOLD)
+            g2.color = Color.WHITE
+        } else {
+            g2.color = if (model.isRollover) type.accentColor else JBColor(Color(190, 190, 190), Color(90, 90, 90))
+            g2.drawRoundRect(0, 0, width - 1, height - 1, ARC, ARC)
+            g2.font = font
+            g2.color = foreground
+        }
+        val fm = g2.fontMetrics
+        g2.drawString(text, (width - fm.stringWidth(text)) / 2, (height - fm.height) / 2 + fm.ascent)
+        g2.dispose()
+    }
+
+    companion object {
+        private const val PAD_H = 8
+        private const val PAD_V = 2
+        private const val ARC = 6
     }
 }
