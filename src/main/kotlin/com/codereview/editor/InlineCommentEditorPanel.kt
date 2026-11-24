@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
 import java.awt.*
@@ -66,7 +67,7 @@ class InlineCommentEditorPanel(
         }
         add(scrollPane, BorderLayout.CENTER)
 
-        val hintLabel = JLabel("${typeShortcutHint()}, Ctrl+Enter to save, Escape to cancel").apply {
+        val hintLabel = JLabel("${typeShortcutHint()}, ${KeymapUtil.getKeystrokeText(SAVE_KEYSTROKE)} to save, Escape to cancel").apply {
             foreground = JBColor(Color(140, 140, 140), Color(120, 120, 120))
             font = font.deriveFont(font.size2D - 1)
             border = BorderFactory.createEmptyBorder(4, 0, 0, 0)
@@ -92,7 +93,8 @@ class InlineCommentEditorPanel(
             override fun actionPerformed(e: java.awt.event.ActionEvent?) { cancel() }
         })
 
-        // Ctrl+Enter to save
+        // Ctrl+Enter also saves on macOS, where users used it before Cmd+Enter existed
+        textArea.getInputMap(JComponent.WHEN_FOCUSED).put(SAVE_KEYSTROKE, "save-edit")
         textArea.getInputMap(JComponent.WHEN_FOCUSED).put(
             KeyStroke.getKeyStroke("ctrl ENTER"), "save-edit"
         )
@@ -113,6 +115,9 @@ class InlineCommentEditorPanel(
     }
 
     companion object {
+        private val SAVE_KEYSTROKE: KeyStroke =
+            KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, if (SystemInfo.isMac) InputEvent.META_DOWN_MASK else InputEvent.CTRL_DOWN_MASK)
+
         private fun typeKeyStroke(index: Int): KeyStroke =
             KeyStroke.getKeyStroke(KeyEvent.VK_1 + index, InputEvent.ALT_DOWN_MASK)
 
