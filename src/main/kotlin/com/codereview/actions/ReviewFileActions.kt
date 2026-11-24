@@ -50,13 +50,13 @@ class ImportReviewsFromFileAction : AnAction(
         val project = e.project ?: return
         val descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("xml")
         val file = FileChooser.chooseFile(descriptor, project, null) ?: return
-        val state = try {
-            XmlSerializer.deserialize(JDOMUtil.load(file.toNioPath()), ReviewSessionService.State::class.java)
+        try {
+            val state = XmlSerializer.deserialize(JDOMUtil.load(file.toNioPath()), ReviewSessionService.State::class.java)
+            ReviewSessionService.getInstance(project).importState(state)
         } catch (ex: Exception) {
             notify(project, "Could not read ${file.path}: ${ex.message}", NotificationType.ERROR)
             return
         }
-        ReviewSessionService.getInstance(project).importState(state)
         InlineCommentManager.resyncAll(project)
         ReviewToolWindowFactory.refreshPanel(project)
         notify(project, "Imported reviews from ${file.path}.")

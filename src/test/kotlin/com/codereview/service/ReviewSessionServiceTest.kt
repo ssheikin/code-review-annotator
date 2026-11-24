@@ -239,4 +239,28 @@ class ReviewSessionServiceTest {
         )
         assertEquals(2, service.reviewHistory.size)
     }
+
+    @Test
+    fun `restoreFromHistory archives the replaced review under a new id`() {
+        service.addComment(ReviewComment(id = "c1", text = "Old"))
+        service.archiveAndClear()
+        val archived = service.reviewHistory.single()
+        service.addComment(ReviewComment(id = "c2", text = "Current"))
+
+        service.restoreFromHistory(archived)
+
+        assertNotEquals(archived.session.id, service.currentSession.id)
+        assertEquals(listOf("c2", "c1"), service.reviewHistory.map { it.session.comments.single().id })
+    }
+
+    @Test
+    fun `importState archives the replaced review`() {
+        val source = ReviewSessionService(null)
+        source.addComment(ReviewComment(id = "new", scope = CommentScope.FILE, text = "New", filePath = "a.go"))
+        service.addComment(ReviewComment(id = "local", scope = CommentScope.FILE, text = "Local", filePath = "b.go"))
+
+        service.importState(source.state)
+
+        assertEquals("local", service.reviewHistory.single().session.comments.single().id)
+    }
 }

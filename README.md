@@ -88,7 +88,8 @@ Line comments quote up to 15 lines of the code they point at.
 
 By default, **Submit Review** pastes the review into the active terminal tab. To run a command
 in a new terminal tab instead, set **Settings → Tools → Code Review Annotator → Submit command**.
-`{file}` expands to the path of a file that holds the review markdown:
+`{file}` expands to the single-quoted path of a file that holds the review markdown, which
+assumes a POSIX shell such as bash, zsh or fish:
 
 ```sh
 claude "$(cat {file})"

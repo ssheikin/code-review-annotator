@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.messages.Topic
 import com.intellij.util.xmlb.annotations.Tag
 import com.intellij.util.xmlb.annotations.XCollection
+import java.util.UUID
 
 interface ReviewCommentListener {
     fun commentsChanged()
@@ -130,11 +131,16 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
     }
 
     fun archiveAndClear() {
-        if (session.comments.isNotEmpty() || session.summary.isNotEmpty()) {
-            history.add(0, ArchivedReview(session.copy(comments = session.comments.toMutableList())))
-            if (history.size > MAX_HISTORY) history.removeAt(history.lastIndex)
-        }
+        archiveCurrent()
         clearSession()
+    }
+
+    // Undo is in memory only, so a review replaced without archiving
+    // would be lost on restart.
+    private fun archiveCurrent() {
+        if (session.comments.isEmpty() && session.summary.isEmpty()) return
+        history.add(0, ArchivedReview(session.copy(comments = session.comments.toMutableList())))
+        if (history.size > MAX_HISTORY) history.removeAt(history.lastIndex)
     }
 
     // Imported history is merged so that moving reviews between machines
@@ -147,14 +153,21 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         while (history.size > MAX_HISTORY) history.removeAt(history.lastIndex)
 
         val incoming = other.currentSession
-        if (incoming.comments.isNotEmpty() || incoming.summary.isNotEmpty()) {
+        val unchanged = incoming.comments == session.comments && incoming.summary == session.summary
+        if (!unchanged && (incoming.comments.isNotEmpty() || incoming.summary.isNotEmpty())) {
+            archiveCurrent()
             recorded { session = incoming }
         }
         fireCommentsChanged()
     }
 
+    // A fresh id keeps the restored review distinct from its archived
+    // original, which import deduplicates by id.
     fun restoreFromHistory(entry: ArchivedReview) {
-        recorded { session = entry.session.copy(comments = entry.session.comments.toMutableList()) }
+        archiveCurrent()
+        recorded {
+            session = entry.session.copy(id = UUID.randomUUID().toString(), comments = entry.session.comments.toMutableList())
+        }
         fireCommentsChanged()
     }
 
