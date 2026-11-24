@@ -35,6 +35,14 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         @Tag("createdAt") var createdAt: Long = 0L
         @Tag("anchorText") var anchorText: String? = null
         @Tag("outdated") var outdated: Boolean = false
+        @Tag("resolved") var resolved: Boolean = false
+        @XCollection(elementName = "reply") var replies: MutableList<ReplyState> = mutableListOf()
+    }
+
+    class ReplyState {
+        @Tag("author") var author: String = ""
+        @Tag("text") var text: String = ""
+        @Tag("createdAt") var createdAt: Long = 0L
     }
 
     class State {
@@ -122,6 +130,12 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
         }
         return null
     }
+
+    fun setResolved(commentId: String, resolved: Boolean): ReviewComment? =
+        updateComment(commentId) { it.copy(resolved = resolved) }
+
+    fun addReply(commentId: String, author: String, text: String): ReviewComment? =
+        updateComment(commentId) { it.copy(replies = it.replies + CommentReply(author, text)) }
 
     // Not recorded: the code moved, the reviewer did not change anything.
     fun relocate(commentId: String, lineStart: Int, lineEnd: Int?, outdated: Boolean) {
@@ -245,6 +259,10 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
             s.createdAt = createdAt
             s.anchorText = anchorText
             s.outdated = outdated
+            s.resolved = resolved
+            s.replies = replies.map { r ->
+                ReplyState().apply { author = r.author; text = r.text; createdAt = r.createdAt }
+            }.toMutableList()
         }
 
         private fun CommentState.toComment() = ReviewComment(
@@ -257,7 +275,9 @@ class ReviewSessionService(private val project: Project?) : PersistentStateCompo
             lineEnd = lineEnd,
             createdAt = createdAt,
             anchorText = anchorText,
-            outdated = outdated
+            outdated = outdated,
+            resolved = resolved,
+            replies = replies.map { CommentReply(it.author, it.text, it.createdAt) }
         )
 
         fun getInstance(project: Project): ReviewSessionService =

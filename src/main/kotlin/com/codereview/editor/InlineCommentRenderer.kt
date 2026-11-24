@@ -44,10 +44,10 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         val font = editor.colorsScheme.getFont(com.intellij.openapi.editor.colors.EditorFontType.PLAIN)
         val metrics = editor.component.getFontMetrics(font)
         val availableWidth = calcWidthInPixels(inlay) - contentInset() - PADDING_RIGHT - 10
-        if (InlineCommentManager.isCollapsed(comment.id)) {
+        if (InlineCommentManager.isCollapsed(comment)) {
             return PADDING_TOP + BADGE_HEIGHT + PADDING_BOTTOM
         }
-        val wrappedLineCount = wrapText(comment.text, metrics, availableWidth.coerceAtLeast(100))
+        val wrappedLineCount = wrapText(bodyText, metrics, availableWidth.coerceAtLeast(100))
         val textHeight = wrappedLineCount * metrics.height
         return PADDING_TOP + BADGE_HEIGHT + GAP_BADGE_TEXT + textHeight + PADDING_BOTTOM
     }
@@ -74,7 +74,7 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         g2.color = comment.type.accentColor
         g2.fillRect(x, y, ACCENT_BAR_WIDTH, height)
 
-        val collapsed = InlineCommentManager.isCollapsed(comment.id)
+        val collapsed = InlineCommentManager.isCollapsed(comment)
         val hoverColor = JBColor(Color(0, 0, 0, 30), Color(255, 255, 255, 30))
         var currentY = y + PADDING_TOP
 
@@ -93,7 +93,7 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         val availableWidth = width - contentInset() - PADDING_RIGHT - 10
 
         // Type badge
-        val badgeText = comment.type.name
+        val badgeText = if (comment.resolved) "${comment.type.name} \u2713 RESOLVED" else comment.type.name
         g2.font = font.deriveFont(Font.BOLD, font.size2D - 1)
         val badgeMetrics = g2.fontMetrics
         val badgeTextWidth = badgeMetrics.stringWidth(badgeText)
@@ -143,7 +143,7 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         currentY += BADGE_HEIGHT + GAP_BADGE_TEXT
 
         // Wrapped comment text
-        val lines = wrapTextToLines(comment.text, metrics, availableWidth.coerceAtLeast(100))
+        val lines = wrapTextToLines(bodyText, metrics, availableWidth.coerceAtLeast(100))
         for (line in lines) {
             g2.drawString(line, contentX, currentY + metrics.ascent)
             currentY += metrics.height
@@ -151,6 +151,10 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
 
         g2.dispose()
     }
+
+    private val bodyText: String
+        get() = if (comment.replies.isEmpty()) comment.text
+        else comment.text + "\n" + comment.replies.joinToString("\n") { "\u21B3 ${it.author}: ${it.text}" }
 
     private fun contentInset(): Int =
         ACCENT_BAR_WIDTH + ICON_BTN_PAD + AllIcons.General.ArrowDown.iconWidth + ICON_BTN_PAD * 2 + ICON_GAP

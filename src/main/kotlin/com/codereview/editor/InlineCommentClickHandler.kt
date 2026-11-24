@@ -6,6 +6,7 @@ import com.codereview.toolwindow.ReviewToolWindowFactory
 import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.editor.event.EditorMouseListener
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import java.awt.Rectangle
 
@@ -71,7 +72,8 @@ class InlineCommentClickHandler(private val project: Project) : EditorMouseListe
     }
 
     private fun showPopupMenu(event: EditorMouseEvent, comment: ReviewComment) {
-        val items = listOf("Edit Comment", "Delete Comment")
+        val resolveItem = if (comment.resolved) "Reopen Comment" else "Resolve Comment"
+        val items = listOf("Edit Comment", "Reply...", resolveItem, "Delete Comment")
         JBPopupFactory.getInstance()
             .createPopupChooserBuilder(items)
             .setTitle("[${comment.type.name}] ${comment.text.take(40)}")
@@ -79,6 +81,12 @@ class InlineCommentClickHandler(private val project: Project) : EditorMouseListe
                 when (chosen) {
                     "Edit Comment" -> editComment(event.editor, comment)
                     "Delete Comment" -> deleteComment(comment)
+                    "Reply..." -> replyTo(event.editor, comment)
+                    resolveItem -> {
+                        val updated = ReviewSessionService.getInstance(project).setResolved(comment.id, !comment.resolved)
+                        if (updated != null) InlineCommentManager.updateInlineComment(project, event.editor, updated)
+                        ReviewToolWindowFactory.refreshPanel(project)
+                    }
                 }
             }
             .createPopup()
@@ -107,6 +115,14 @@ class InlineCommentClickHandler(private val project: Project) : EditorMouseListe
                 InlineCommentManager.addInlineComment(project, editor, comment)
             }
         )
+    }
+
+    private fun replyTo(editor: com.intellij.openapi.editor.Editor, comment: ReviewComment) {
+        val text = Messages.showMultilineInputDialog(project, comment.text, "Reply to Comment", "", null, null)
+            ?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        val updated = ReviewSessionService.getInstance(project).addReply(comment.id, "you", text) ?: return
+        InlineCommentManager.updateInlineComment(project, editor, updated)
+        ReviewToolWindowFactory.refreshPanel(project)
     }
 
     private fun deleteComment(comment: ReviewComment) {

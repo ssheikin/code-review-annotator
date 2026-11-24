@@ -16,7 +16,15 @@ data class ReviewComment(
     val createdAt: Long = System.currentTimeMillis(),
     // The commented lines as they were when the comment was written.
     val anchorText: String? = null,
-    val outdated: Boolean = false
+    val outdated: Boolean = false,
+    val resolved: Boolean = false,
+    val replies: List<CommentReply> = emptyList()
+)
+
+data class CommentReply(
+    val author: String,
+    val text: String,
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 data class ReviewSession(

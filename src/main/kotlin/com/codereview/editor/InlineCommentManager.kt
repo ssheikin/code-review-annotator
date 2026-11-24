@@ -20,9 +20,10 @@ object InlineCommentManager {
     private val log = Logger.getInstance(InlineCommentManager::class.java)
     private val inlays = mutableMapOf<String, Inlay<InlineCommentRenderer>>()
     private var currentEditorPopup: JBPopup? = null
+    // Ids whose collapse state differs from the default: resolved comments start collapsed.
     private val collapsedIds = mutableSetOf<String>()
 
-    fun isCollapsed(commentId: String): Boolean = commentId in collapsedIds
+    fun isCollapsed(comment: ReviewComment): Boolean = (comment.id in collapsedIds) != comment.resolved
 
     fun toggleCollapsed(inlay: Inlay<*>) {
         val renderer = inlay.renderer as? InlineCommentRenderer ?: return

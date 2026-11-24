@@ -461,7 +461,12 @@ private class CommentCellPanel : JPanel() {
                 } else {
                     "L${comment.lineStart}"
                 }
-                if (comment.outdated) "$range · code changed" else range
+                listOfNotNull(
+                    range,
+                    "code changed".takeIf { comment.outdated },
+                    "resolved".takeIf { comment.resolved },
+                    "${comment.replies.size} repl${if (comment.replies.size == 1) "y" else "ies"}".takeIf { comment.replies.isNotEmpty() }
+                ).joinToString(" · ")
             }
             CommentScope.FILE -> "Whole file"
             CommentScope.REVIEW -> "Review"

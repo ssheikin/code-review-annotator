@@ -273,4 +273,18 @@ class ReviewSessionServiceTest {
         service.undo()
         assertTrue(service.currentSession.comments.isEmpty())
     }
+
+    @Test
+    fun `resolve and replies survive serialization`() {
+        service.addComment(ReviewComment(id = "c1", scope = CommentScope.FILE, text = "x", filePath = "a.go"))
+        service.setResolved("c1", true)
+        service.addReply("c1", "agent", "Done")
+
+        val newService = ReviewSessionService(null)
+        newService.loadState(service.state)
+
+        val restored = newService.currentSession.comments.single()
+        assertTrue(restored.resolved)
+        assertEquals(listOf("agent" to "Done"), restored.replies.map { it.author to it.text })
+    }
 }

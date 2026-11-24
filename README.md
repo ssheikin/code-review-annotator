@@ -62,6 +62,9 @@ Double-click a comment to navigate to its file and line in the editor.
 
 In the editor, click the arrow on an inline comment to collapse it to one line.
 
+Click the body of an inline comment to reply to it or resolve it. Resolved comments collapse,
+and the export leaves them out. Replies follow their comment in the export.
+
 Press <kbd>Ctrl+Shift+Alt+Down</kbd> or <kbd>Ctrl+Shift+Alt+Up</kbd> to jump to the next or previous
 line comment.
 

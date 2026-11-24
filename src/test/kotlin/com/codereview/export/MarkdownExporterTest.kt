@@ -120,4 +120,20 @@ class MarkdownExporterTest {
         val result = MarkdownExporter.export(session)
         assertTrue(result.contains("`a.go:3` (code changed since this comment) - Fix"))
     }
+
+    @Test
+    fun `export skips resolved comments and lists replies`() {
+        val session = ReviewSession(
+            comments = mutableListOf(
+                ReviewComment(scope = CommentScope.FILE, text = "Done", filePath = "a.go", resolved = true),
+                ReviewComment(
+                    scope = CommentScope.FILE, text = "Open", filePath = "b.go",
+                    replies = listOf(CommentReply("agent", "Fixed in handler"))
+                )
+            )
+        )
+        val result = MarkdownExporter.export(session)
+        assertFalse(result.contains("Done"))
+        assertTrue(result.contains("1. **[QUESTION]** `b.go` - Open\n   - **agent:** Fixed in handler"))
+    }
 }
