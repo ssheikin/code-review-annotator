@@ -15,6 +15,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.JBColor
+import com.intellij.ui.SimpleListCellRenderer
 import java.awt.*
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
@@ -30,6 +31,7 @@ class InlineCommentEditorPanel(
 
     private val typeCombo = ComboBox(CommentType.entries.toTypedArray()).apply {
         selectedItem = initialType
+        renderer = SimpleListCellRenderer.create("") { it.label }
     }
 
     // A nested editor rather than a JTextArea: inside the host editor, a plain text area
@@ -153,7 +155,7 @@ class InlineCommentEditorPanel(
         }
 
         fun typeShortcutHint(): String = CommentType.entries.mapIndexed { index, type ->
-            "${KeymapUtil.getKeystrokeText(typeKeyStroke(index))} ${type.name}"
+            "${KeymapUtil.getKeystrokeText(typeKeyStroke(index))} ${type.label}"
         }.joinToString(", ")
     }
 }

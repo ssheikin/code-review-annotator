@@ -93,7 +93,7 @@ class InlineCommentRenderer(val comment: ReviewComment) : EditorCustomElementRen
         val availableWidth = width - contentInset() - PADDING_RIGHT - 10
 
         // Type badge
-        val badgeText = if (comment.resolved) "${comment.type.name} \u2713 RESOLVED" else comment.type.name
+        val badgeText = if (comment.resolved) "${comment.type.label} \u2713 Resolved" else comment.type.label
         g2.font = font.deriveFont(Font.BOLD, font.size2D - 1)
         val badgeMetrics = g2.fontMetrics
         val badgeTextWidth = badgeMetrics.stringWidth(badgeText)

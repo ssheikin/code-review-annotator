@@ -2,7 +2,12 @@ package com.codereview.model
 
 import java.util.UUID
 
-enum class CommentType { MUST_DO, SUGGESTION, QUESTION }
+// The label is for display only; persistence, export and agents use the enum name.
+enum class CommentType(val label: String) {
+    MUST_DO("Must do"),
+    SUGGESTION("Suggestion"),
+    QUESTION("Question")
+}
 enum class CommentScope { REVIEW, FILE, LINE }
 
 data class ReviewComment(

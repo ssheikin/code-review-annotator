@@ -76,7 +76,7 @@ class InlineCommentClickHandler(private val project: Project) : EditorMouseListe
         val items = listOf("Edit Comment", "Reply...", resolveItem, "Delete Comment")
         JBPopupFactory.getInstance()
             .createPopupChooserBuilder(items)
-            .setTitle("[${comment.type.name}] ${comment.text.take(40)}")
+            .setTitle("[${comment.type.label}] ${comment.text.take(40)}")
             .setItemChosenCallback { chosen ->
                 when (chosen) {
                     "Edit Comment" -> editComment(event.editor, comment)

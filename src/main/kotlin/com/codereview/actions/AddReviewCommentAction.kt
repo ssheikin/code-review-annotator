@@ -12,6 +12,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBScrollPane
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -49,6 +50,7 @@ class CommentDialog(
 
     private val typeCombo = ComboBox(CommentType.entries.toTypedArray()).apply {
         selectedItem = initialType
+        renderer = SimpleListCellRenderer.create("") { it.label }
     }
     private val textArea = JTextArea(initialText, 6, 50).apply {
         lineWrap = true

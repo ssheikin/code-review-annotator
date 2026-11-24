@@ -383,7 +383,7 @@ private class CommentCellPanel : JPanel() {
         val badgeFont = baseFont.deriveFont(Font.BOLD, baseFont.size2D - 1f)
         g2.font = badgeFont
         val badgeFm = g2.fontMetrics
-        val badgeText = comment.type.name
+        val badgeText = comment.type.label
         val badgeTextW = badgeFm.stringWidth(badgeText)
         val badgeW = badgeTextW + BADGE_PAD_H * 2
 
