@@ -78,6 +78,15 @@
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt X"/>
         </action>
 
+        <action id="CodeReviewAnnotator.ExportToActiveTerminal"
+                class="com.codereview.actions.ExportToActiveTerminalAction"
+                text="Submit Review to Active Terminal"
+                description="Paste all review comments into the active terminal tab">
+            <add-to-group group-id="TerminalToolwindowActionGroup" anchor="after"
+                          relative-to-action="CodeReviewAnnotator.ExportToTerminal"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift X"/>
+        </action>
+
         <action id="CodeReviewAnnotator.ShowHistory"
                 class="com.codereview.actions.ShowReviewHistoryAction"
                 text="Review History"
@@ -144,6 +153,7 @@
         <!-- Tool window toolbar group -->
         <group id="CodeReviewAnnotator.ToolWindowToolbar">
             <reference ref="CodeReviewAnnotator.ExportToTerminal"/>
+            <reference ref="CodeReviewAnnotator.ExportToActiveTerminal"/>
             <reference ref="CodeReviewAnnotator.ExportToClipboard"/>
             <reference ref="CodeReviewAnnotator.ClearSession"/>
             <separator/>

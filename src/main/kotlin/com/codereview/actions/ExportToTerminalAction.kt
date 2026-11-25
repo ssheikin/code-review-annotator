@@ -16,15 +16,18 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.terminal.JBTerminalWidget
+import com.intellij.terminal.icons.TerminalIcons
 import com.intellij.util.ui.UIUtil
 import org.jetbrains.plugins.terminal.TerminalToolWindowFactory
 import org.jetbrains.plugins.terminal.TerminalToolWindowManager
+import javax.swing.Icon
 
-class ExportToTerminalAction : AnAction(
-    "Submit Review",
-    "Submit all review comments to the terminal",
-    AllIcons.Actions.MenuPaste
-) {
+open class ExportToTerminalAction(
+    text: String = "Submit Review",
+    description: String = "Submit all review comments to the terminal",
+    private val useSubmitCommand: Boolean = true,
+    icon: Icon = TerminalIcons.OpenTerminal_13x13,
+) : AnAction(text, description, icon) {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val session = ReviewSessionService.getInstance(project).currentSession
@@ -42,7 +45,7 @@ class ExportToTerminalAction : AnAction(
         val markdown = MarkdownExporter.export(session, snippetOf = ProjectSnippets.reader(project))
 
         val command = CodeReviewSettings.getInstance().state.submitCommand.trim()
-        if (command.isNotEmpty()) {
+        if (useSubmitCommand && command.isNotEmpty()) {
             // A file avoids escaping multi-line markdown for the shell.
             val reviewFile = FileUtil.createTempFile("code-review-", ".md", true)
             reviewFile.writeText(markdown)
@@ -108,5 +111,23 @@ class ExportToTerminalAction : AnAction(
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible = e.project != null
+    }
+}
+
+// Lets a review reach the agent already running in a terminal tab even when a submit command
+// is set for starting new sessions.
+class ExportToActiveTerminalAction : ExportToTerminalAction(
+    "Submit Review to Active Terminal",
+    "Paste all review comments into the active terminal tab",
+    useSubmitCommand = false,
+    // The two buttons sit side by side, so the same icon would leave them indistinguishable.
+    icon = AllIcons.Debugger.Console,
+) {
+    // Without a submit command, Submit Review already pastes into the active tab.
+    override fun update(e: AnActionEvent) {
+        super.update(e)
+        if (CodeReviewSettings.getInstance().state.submitCommand.isBlank()) {
+            e.presentation.isEnabledAndVisible = false
+        }
     }
 }

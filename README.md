@@ -106,6 +106,10 @@ as bash, zsh or fish:
 claude "$(cat {file})"
 ```
 
+**Submit Review to Active Terminal** (<kbd>Ctrl+Shift+X</kbd>) always pastes into the
+active terminal tab and ignores the submit command. Use it to send a follow-up review to an
+agent that already runs. It shows up only when a submit command is set.
+
 ### Let an agent work through the review (MCP)
 
 The plugin adds review tools to the IDE's built-in MCP server. Enable the server in
