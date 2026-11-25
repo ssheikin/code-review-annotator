@@ -45,7 +45,7 @@ class InlineCommentClickHandler(private val project: Project) : EditorMouseListe
                     editBounds.width, editBounds.height
                 )
                 if (editRect.contains(point)) {
-                    editComment(editor, comment)
+                    InlineCommentManager.editComment(project, editor, comment)
                     event.consume()
                     return
                 }
@@ -79,7 +79,7 @@ class InlineCommentClickHandler(private val project: Project) : EditorMouseListe
             .setTitle("[${comment.type.label}] ${comment.text.take(40)}")
             .setItemChosenCallback { chosen ->
                 when (chosen) {
-                    "Edit Comment" -> editComment(event.editor, comment)
+                    "Edit Comment" -> InlineCommentManager.editComment(project, event.editor, comment)
                     "Delete Comment" -> deleteComment(comment)
                     "Reply..." -> replyTo(event.editor, comment)
                     resolveItem -> {
@@ -91,30 +91,6 @@ class InlineCommentClickHandler(private val project: Project) : EditorMouseListe
             }
             .createPopup()
             .showInBestPositionFor(event.editor)
-    }
-
-    private fun editComment(editor: com.intellij.openapi.editor.Editor, comment: ReviewComment) {
-        // Hide the display inlay while editing
-        InlineCommentManager.removeInlineComment(comment.id)
-
-        val anchorLine = comment.lineEnd ?: comment.lineStart ?: return
-        InlineCommentManager.showEditorPopup(
-            editor = editor,
-            line1Based = anchorLine,
-            existingComment = comment,
-            onSave = { type, text ->
-                val updated = ReviewSessionService.getInstance(project).updateComment(comment.id) {
-                    it.copy(type = type, text = text)
-                }
-                if (updated != null) {
-                    InlineCommentManager.addInlineComment(project, editor, updated)
-                }
-                ReviewToolWindowFactory.refreshPanel(project)
-            },
-            onCancel = {
-                InlineCommentManager.addInlineComment(project, editor, comment)
-            }
-        )
     }
 
     private fun replyTo(editor: com.intellij.openapi.editor.Editor, comment: ReviewComment) {

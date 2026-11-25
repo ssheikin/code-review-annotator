@@ -3,6 +3,7 @@ package com.codereview.editor
 import com.codereview.model.CommentType
 import com.codereview.model.ReviewComment
 import com.codereview.service.ReviewSessionService
+import com.codereview.toolwindow.ReviewToolWindowFactory
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
@@ -115,6 +116,30 @@ object InlineCommentManager {
                     log.warn("[CodeReview] reapplyInlineComments SKIPPED (already valid): commentId=${comment.id}")
                 }
             }
+    }
+
+    fun editComment(project: Project, editor: Editor, comment: ReviewComment) {
+        // Hide the display inlay while editing
+        InlineCommentManager.removeInlineComment(comment.id)
+
+        val anchorLine = comment.lineEnd ?: comment.lineStart ?: return
+        InlineCommentManager.showEditorPopup(
+            editor = editor,
+            line1Based = anchorLine,
+            existingComment = comment,
+            onSave = { type, text ->
+                val updated = ReviewSessionService.getInstance(project).updateComment(comment.id) {
+                    it.copy(type = type, text = text)
+                }
+                if (updated != null) {
+                    InlineCommentManager.addInlineComment(project, editor, updated)
+                }
+                ReviewToolWindowFactory.refreshPanel(project)
+            },
+            onCancel = {
+                InlineCommentManager.addInlineComment(project, editor, comment)
+            }
+        )
     }
 
     /**
