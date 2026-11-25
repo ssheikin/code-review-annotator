@@ -56,7 +56,7 @@ While typing a comment, press <kbd>Alt+1</kbd>, <kbd>Alt+2</kbd> or <kbd>Alt+3</
 
 ### 2. Browse comments
 
-Open the **Code Review** tool window (bottom panel). All comments are listed, sorted by scope → file → line.
+Open the **Code Review** tool window (bottom panel), or press <kbd>Ctrl+Alt+R</kbd>. All comments are listed, sorted by scope → file → line.
 
 Double-click a comment to navigate to its file and line in the editor.
 

@@ -43,6 +43,13 @@
     </extensions>
 
     <actions>
+        <action id="ActivateCodeReviewToolWindow"
+                class="com.codereview.actions.ActivateReviewToolWindowAction"
+                text="Code Review"
+                description="Open the Code Review tool window">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt R"/>
+        </action>
+
         <!-- Review-wide comment from tool window toolbar -->
         <action id="CodeReviewAnnotator.AddReviewComment"
                 class="com.codereview.actions.AddReviewCommentAction"
