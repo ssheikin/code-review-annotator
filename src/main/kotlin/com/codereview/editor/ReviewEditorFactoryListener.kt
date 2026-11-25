@@ -8,10 +8,13 @@ import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.LocalFileSystem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Startup activity that registers an [EditorFactoryListener] to reapply
@@ -29,6 +32,12 @@ class ReviewEditorListenerStartup : ProjectActivity {
         val listener = ReviewEditorFactoryListenerImpl()
         EditorFactory.getInstance().addEditorFactoryListener(listener, project)
         CommentAnchors.install(project, project)
+        // Tabs restored at project open exist before this activity runs, so the listener never saw them.
+        withContext(Dispatchers.EDT) {
+            EditorFactory.getInstance().allEditors
+                .filter { it.project == project && !it.isDisposed }
+                .forEach { listener.handleEditorCreated(it) }
+        }
     }
 }
 
@@ -47,7 +56,7 @@ private class ReviewEditorFactoryListenerImpl : EditorFactoryListener {
         handleEditorCreated(event.editor)
     }
 
-    private fun handleEditorCreated(editor: Editor) {
+    fun handleEditorCreated(editor: Editor) {
         if (editor.getUserData(HANDLED) == true) return
         editor.putUserData(HANDLED, true)
 
