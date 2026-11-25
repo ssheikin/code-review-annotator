@@ -40,11 +40,11 @@ This launches a sandboxed GoLand instance with the plugin loaded.
 
 There are three scopes for comments:
 
-| Scope      | How to add                                                                                 |
-|------------|--------------------------------------------------------------------------------------------|
-| **Review** | **Code Review** tool window (bottom panel) → toolbar → **Add Review Comment**              |
-| **File**   | Right-click a file in the **Commit** view → **Add File Comment...**                        |
-| **Line**   | Right-click in the editor → **Add Review Comment Here...**, or <kbd>Ctrl+Shift+Alt+C</kbd> |
+| Scope      | How to add                                                                                    |
+|------------|-----------------------------------------------------------------------------------------------|
+| **Review** | **Code Review** tool window (bottom panel) → toolbar → **Add Review Comment**                 |
+| **File**   | Right-click a file in the **Commit** view → **Add File Comment...**, or <kbd>Ctrl+Alt+A</kbd> |
+| **Line**   | Right-click in the editor → **Add Review Comment Here...**, or <kbd>Ctrl+Alt+A</kbd>          |
 
 Each comment has a type:
 
@@ -70,7 +70,7 @@ line comment.
 
 ### 3. Export to clipboard
 
-Click **Export Comments to Clipboard** in the tool window toolbar, or press <kbd>Ctrl+Shift+Alt+E</kbd>.
+Click **Export Comments to Clipboard** in the tool window toolbar, or press <kbd>Ctrl+Alt+X</kbd>.
 
 This copies all comments as numbered markdown:
 
@@ -96,10 +96,11 @@ gone, the comment is marked **code changed**, and the export quotes the original
 
 ### Submit with a custom command
 
-By default, **Submit Review** pastes the review into the active terminal tab. To run a command
-in a new terminal tab instead, set **Settings → Tools → Code Review Annotator → Submit command**.
-`{file}` expands to the single-quoted path of a file that holds the review markdown, which
-assumes a POSIX shell such as bash, zsh or fish:
+By default, **Submit Review** (<kbd>Ctrl+Shift+Alt+X</kbd>) pastes the review into the active
+terminal tab. To run a command in a new terminal tab instead, set
+**Settings → Tools → Code Review Annotator → Submit command**. `{file}` expands to the
+single-quoted path of a file that holds the review markdown, which assumes a POSIX shell such
+as bash, zsh or fish:
 
 ```sh
 claude "$(cat {file})"

@@ -61,7 +61,7 @@
                 class="com.codereview.actions.ExportToClipboardAction"
                 text="Copy Review"
                 description="Copy all review comments as markdown to the clipboard">
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt E"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt X"/>
         </action>
 
         <action id="CodeReviewAnnotator.ClearSession"
@@ -75,6 +75,7 @@
                 text="Submit Review"
                 description="Submit all review comments to the terminal">
             <add-to-group group-id="TerminalToolwindowActionGroup" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt X"/>
         </action>
 
         <action id="CodeReviewAnnotator.ShowHistory"
@@ -127,6 +128,7 @@
                 text="Add File Comment..."
                 description="Add a review comment on this file">
             <add-to-group group-id="ChangesViewPopupMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt A"/>
         </action>
 
         <!-- Line comment from editor context menu -->
@@ -136,7 +138,7 @@
                 description="Add a review comment on the selected lines">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="Diff.EditorPopupMenu" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt C"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt A"/>
         </action>
 
         <!-- Tool window toolbar group -->
